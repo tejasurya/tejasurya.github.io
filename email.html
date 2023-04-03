@@ -1,21 +1,3 @@
-<?php
-if (isset($_POST["submit_btn"])) {
-
-    $to = "recipient@email.com";
-    $subject = 'Mail sent from sendmail PHP script';
-
-    $from = $_POST["email"];
-    $message = $_POST["msg"];
-    $headers = "From: $from";
-
-    // Sendmail in PHP using mail()
-    if (mail($to, $subject, $message, $headers)) {
-        $responseText = 'Mail sent successfully.';
-    } else {
-        $responseText = 'Unable to send mail. Please try again.';
-    }
-}
-?>
 <html>
 <head>
 <style>
@@ -55,48 +37,14 @@ input, textarea {
 </style>
 </head>
 <body>
-	<?php 
-	if(!empty($responseText)) {
-	
-	?>
-	<div class="response-ribbon"><?php echo $responseText; ?></div>
-	<?php 
-	}
-	?>
-	<form id="email-form" name="email-form" method="post" action="">
-		<table width="100%" border="0" align="center" cellpadding="4"
-			cellspacing="1">
-			<tr>
-				<td>
-					<div class="label">Name:</div>
-					<div class="field">
-						<input name="name" type="text" id="name" required>
-					</div>
-				</td>
-			</tr>
-
-			<tr>
-				<td><div class="label">E-mail:</div>
-					<div class="field">
-						<input name="email" type="text" id="email" required>
-					</div></td>
-			</tr>
-
-			<tr>
-				<td><div class="label">Message:</div>
-					<div class="field">
-						<textarea name="msg" cols="45" rows="5" id="msg" required></textarea>
-					</div></td>
-			</tr>
-			<tr>
-				<td>
-					<div class="field">
-						<input name="submit_btn" type="submit" id="submit-btn"
-							value="Send Mail">
-					</div>
-				</td>
-			</tr>
-		</table>
+	<form action="https://formsubmit.co/hltejasurya@gmail.com" method="POST">
+		<input type="text" name="name" placeholder="Your name" required>
+		<br>
+		<input type="email" name="email" placeholder="your Email" required>
+		
+		<textarea name="Message" placeholder="Message" required> </textarea>
+		
+		<button type="submit">Send</button>
 	</form>
 </body>
 </html>
