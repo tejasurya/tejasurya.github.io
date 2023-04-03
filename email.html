@@ -1,51 +1,119 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+
 <head>
-<style>
-body {
-	font-family: Arial;
-	width: 550px;
-}
+    <meta charset="utf-8">
+    <title>Teja Surya - Freelancer Portfolio</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
 
-.response-ribbon {
-	padding: 10px;
-	background: #ccc;
-	border: #bcbcbc 1px solid;
-	margin-bottom: 15px;
-	border-radius: 3px;
-}
+    <!-- Favicon -->
+    <link href="img/favicon.ico" rel="icon">
 
-input, textarea {
-	padding: 8px;
-	border: 1px solid #ccc;
-	border-radius: 5px;
-}
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet"> 
 
-#Submit-btn {
-	background: #1363cc;
-	color: #FFF;
-	width: 150px;
-}
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
 
-#email-form {
-	border: 1px solid #ccc;
-	padding: 20px;
-}
+    <!-- Libraries Stylesheet -->
+    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <link href="lib/lightbox/css/lightbox.min.css" rel="stylesheet">
 
-.response-ribbon {
-	
-}
-</style>
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="css/style.css" rel="stylesheet">
 </head>
-<body>
-	<form action="https://formsubmit.co/28ace2274a0af80b847eb98bcd8b42a5" method="POST">
-		<input type="text" name="name" placeholder="Your name" required>
+
+<body data-spy="scroll" data-target=".navbar" data-offset="51">
+    <!-- Navbar Start -->
+    <nav class="navbar fixed-top shadow-sm navbar-expand-lg bg-light navbar-light py-3 py-lg-0 px-lg-5">
+        <a href="https://tejasurya.in" class="navbar-brand ml-lg-3">
+            <h1 class="m-0 display-5"><span class="text-primary">Teja</span>Surya</h1>
+        </a>
+        <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbarCollapse">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse px-lg-3" id="navbarCollapse">
+            <div class="navbar-nav m-auto py-0">
+                <a href="https://tejasurya.in" class="nav-item nav-link active">Home</a>
+                <!--a href="#about" class="nav-item nav-link">About</a-->
+            </div>
+        </div>
+    </nav>
+	
+	
+    <div class="container-fluid py-5" id="contact">
+        <div class="container">
+		<form action="https://formsubmit.co/28ace2274a0af80b847eb98bcd8b42a5" method="POST">
+		<h4>Name</h4>
+		<input class="form-control p-4" type="text" name="name" placeholder="your name" required>
 		<br>
-		<input type="email" name="email" placeholder="your Email" required>
+		<br>
+		<h4>Email id</h4>
+		<input class="form-control p-4" type="email" name="email" placeholder="your email eg: abc@email.com" required>
+		<br>
+		<br>
+		<h4>Subject</h4>
+		<input type="text" class="form-control p-4" name="subject" placeholder="Subject" required>
+		<br><br>
+		<h4>Message</h4>
+		<textarea class="form-control py-3 px-4" name="Message" placeholder="Message" required> </textarea>
 		
-		<textarea name="Message" placeholder="Message" required> </textarea>
-		
-		<button type="submit">Send</button>
+		<button class="btn btn-outline-primary" type="submit">Send</button>
 	</form>
+	</div>
+	</div>
+    
+	
+	<!-- Footer Start -->
+    <div class="container-fluid bg-primary text-white mt-5 py-5 px-sm-3 px-md-5">
+        <div class="container text-center py-5">
+            <div class="d-flex justify-content-center mb-4">
+				<a class="btn btn-light btn-social mr-2" href="https://www.linkedin.com/in/tejasurya"><i class="fab fa-linkedin-in"></i></a>
+				<a class="btn btn-light btn-social mr-2" href="https://twitter.com/teja_surya_"><i class="fab fa-twitter"></i></a>
+                <a class="btn btn-light btn-social mr-2" href="https://www.kaggle.com/tejasurya"><i class="fab fa-kaggle"></i></a>
+            </div>
+            <!--div class="d-flex justify-content-center mb-3">
+                <a class="text-white" href="#">Privacy</a>
+                <span class="px-3">|</span>
+                <a class="text-white" href="#">Terms</a>
+                <span class="px-3">|</span>
+                <a class="text-white" href="#">FAQs</a>
+                <span class="px-3">|</span>
+                <a class="text-white" href="#">Help</a>
+            </div-->
+            <p class="m-0">&copy; <a class="text-white font-weight-bold" href="https://tejasurya.in">www.tejasurya.in</a>. All Rights Reserved. Designed by Teja Surya
+            </p>
+        </div>
+    </div>
+    <!-- Footer End -->
+
+    <!-- Scroll to Bottom -->
+    <i class="fa fa-2x fa-angle-down text-white scroll-to-bottom"></i>
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-outline-dark px-0 back-to-top"><i class="fa fa-angle-double-up"></i></a>
+
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/typed/typed.min.js"></script>
+    <script src="lib/easing/easing.min.js"></script>
+    <script src="lib/waypoints/waypoints.min.js"></script>
+    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="lib/isotope/isotope.pkgd.min.js"></script>
+    <script src="lib/lightbox/js/lightbox.min.js"></script>
+
+    <!-- Contact Javascript File -->
+    <script src="mail/jqBootstrapValidation.min.js"></script>
+    <script src="mail/contact.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="js/main.js"></script>
 </body>
+
 </html>
 
