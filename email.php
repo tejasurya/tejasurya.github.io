@@ -1,53 +1,103 @@
 <?php
-use PHPMailer\PHPMailer\PHPMailer;
-$msg = '';
-if (array_key_exists('email', $_POST)) {
-    require 'vendor/autoload.php';
-    $mail = new PHPMailer;
-    $mail->isSMTP();
-    $mail->Host = 'smtp.hostinger.com';
-    $mail->Port = 587;
-    $mail->SMTPDebug = 0;
-    $mail->SMTPAuth = true;
-    $mail->Username = 'mymail@myawesomedomain.tld';
-    $mail->Password = 'My$tr0ngPa55w0rd!';
-    $mail->setFrom('mymail@myawesomedomain.tld', 'Mr. Snuffles');
-    $mail->addAddress('recipient@domain.tld', 'Receiver Name');
-    if ($mail->addReplyTo($_POST['email'], $_POST['name'])) {
-        $mail->Subject = 'PHPMailer contact form';
-        $mail->isHTML(false);
-        $mail->Body = <<<EOT
-            Email: {$_POST['email']}
-            Name: {$_POST['name']}
-            Message: {$_POST['message']}
-EOT;
-        if (!$mail->send()) {
-            $msg = 'Sorry, something went wrong. Please try again later.';
-        } else {
-            $msg = 'Message sent! Thanks for contacting us.';
-        }
+if (isset($_POST["submit_btn"])) {
+
+    $to = "recipient@email.com";
+    $subject = 'Mail sent from sendmail PHP script';
+
+    $from = $_POST["email"];
+    $message = $_POST["msg"];
+    $headers = "From: $from";
+
+    // Sendmail in PHP using mail()
+    if (mail($to, $subject, $message, $headers)) {
+        $responseText = 'Mail sent successfully.';
     } else {
-        $msg = 'Share it with us!';
+        $responseText = 'Unable to send mail. Please try again.';
     }
 }
 ?>
-
-<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Contact form</title>
+<style>
+body {
+	font-family: Arial;
+	width: 550px;
+}
+
+.response-ribbon {
+	padding: 10px;
+	background: #ccc;
+	border: #bcbcbc 1px solid;
+	margin-bottom: 15px;
+	border-radius: 3px;
+}
+
+input, textarea {
+	padding: 8px;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+}
+
+#Submit-btn {
+	background: #1363cc;
+	color: #FFF;
+	width: 150px;
+}
+
+#email-form {
+	border: 1px solid #ccc;
+	padding: 20px;
+}
+
+.response-ribbon {
+	
+}
+</style>
 </head>
 <body>
-<h1>Contact us</h1>
-<?php if (!empty($msg)) {
-    echo "<h2>$msg</h2>";
-} ?>
-<form method="POST">
-    <label for="name">Name: <input type="text" name="name" id="name"></label><br>
-    <label for="email">Email address: <input type="email" name="email" id="email"></label><br>
-    <label for="message">Message: <textarea name="message" id="message" rows="8" cols="20"></textarea></label><br>
-    <input type="submit" value="Send">
-</form>
+	<?php 
+	if(!empty($responseText)) {
+	
+	?>
+	<div class="response-ribbon"><?php echo $responseText; ?></div>
+	<?php 
+	}
+	?>
+	<form id="email-form" name="email-form" method="post" action="">
+		<table width="100%" border="0" align="center" cellpadding="4"
+			cellspacing="1">
+			<tr>
+				<td>
+					<div class="label">Name:</div>
+					<div class="field">
+						<input name="name" type="text" id="name" required>
+					</div>
+				</td>
+			</tr>
+
+			<tr>
+				<td><div class="label">E-mail:</div>
+					<div class="field">
+						<input name="email" type="text" id="email" required>
+					</div></td>
+			</tr>
+
+			<tr>
+				<td><div class="label">Message:</div>
+					<div class="field">
+						<textarea name="msg" cols="45" rows="5" id="msg" required></textarea>
+					</div></td>
+			</tr>
+			<tr>
+				<td>
+					<div class="field">
+						<input name="submit_btn" type="submit" id="submit-btn"
+							value="Send Mail">
+					</div>
+				</td>
+			</tr>
+		</table>
+	</form>
 </body>
 </html>
+
