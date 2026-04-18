@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Group 3 Map Dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<style>
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-sidebar: #ffffff;
+    --text-primary: #202124;
+    --text-secondary: #5f6368;
+    --border: #e8eaed;
+    --accent: #1a73e8;
+    --accent-hover: #1557b0;
+    --shadow: 0 1px 3px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.08);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,.15);
+    --panel: rgba(255,255,255,0.97);
+    --chip-bg: #e8f0fe;
+    --chip-color: #1a73e8;
+    --badge-bg: #34a853;
+    --sidebar-w: 320px;
+  }
+  [data-theme="dark"] {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-sidebar: #0f3460;
+    --text-primary: #e0e0e0;
+    --text-secondary: #9e9e9e;
+    --border: #2a2a4a;
+    --accent: #4285f4;
+    --accent-hover: #5a9ef8;
+    --shadow: 0 1px 3px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.3);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,.5);
+    --panel: rgba(15,52,96,0.97);
+    --chip-bg: #1a3060;
+    --chip-color: #8ab4f8;
+    --badge-bg: #137333;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  /* ── TOP BAR ── */
+  #topbar {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    padding: 0 16px;
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    z-index: 1001;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  #topbar .logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #topbar .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg,#4285f4,#34a853,#fbbc04,#ea4335);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  #topbar .logo-icon .material-icons-round { color: #fff; font-size: 20px; }
+  #topbar h1 {
+    font-family: 'Google Sans', sans-serif;
+    font-size: 17px; font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+  #topbar .divider { width: 1px; height: 24px; background: var(--border); }
+  #topbar .subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #topbar .spacer { flex: 1; }
+  .icon-btn {
+    background: none; border: none;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background .2s;
+  }
+  .icon-btn:hover { background: var(--border); color: var(--text-primary); }
+  .icon-btn .material-icons-round { font-size: 22px; }
+  #theme-toggle .material-icons-round { font-size: 21px; }
+  /* ── MAIN LAYOUT ── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: width .3s ease;
+    z-index: 100;
+  }
+  #sidebar.collapsed { width: 0; }
+  #sidebar-inner {
+    width: var(--sidebar-w);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+  }
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+  }
+  .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  /* ── SECTION CARDS ── */
+  .section-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-family: 'Google Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-title .material-icons-round { font-size: 15px; }
+  /* ── LAYER TOGGLES ── */
+  .layer-item {
+    display: flex; align-items: center;
+    padding: 7px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+    gap: 10px;
+  }
+  .layer-item:hover { background: var(--border); }
+  .layer-item label {
+    font-size: 13.5px; cursor: pointer;
+    flex: 1;
+    color: var(--text-primary);
+    font-weight: 400;
+  }
+  .layer-item .badge {
+    font-size: 11px;
+    background: var(--chip-bg);
+    color: var(--chip-color);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  /* Custom toggle */
+  .toggle-wrap { display: flex; align-items: center; }
+  .toggle {
+    position: relative;
+    width: 36px; height: 20px;
+    flex-shrink: 0;
+  }
+  .toggle input { display: none; }
+  .toggle-track {
+    width: 36px; height: 20px;
+    background: #bdc1c6;
+    border-radius: 10px;
+    transition: background .2s;
+    cursor: pointer;
+  }
+  .toggle input:checked ~ .toggle-track { background: var(--accent); }
+  .toggle-thumb {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    transition: left .2s;
+    pointer-events: none;
+  }
+  .toggle input:checked ~ .toggle-thumb { left: 18px; }
+  /* ── BASE MAP ── */
+  .basemap-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .basemap-btn {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    cursor: pointer;
+    background: var(--bg-primary);
+    transition: border-color .2s, box-shadow .2s;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .basemap-btn:hover { border-color: var(--accent); }
+  .basemap-btn.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--chip-bg); }
+  .basemap-btn .thumb {
+    width: 100%; height: 44px;
+    border-radius: 6px;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--border);
+  }
+  .basemap-btn span { font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+  /* ── LEGEND ── */
+  #legend-list { display: flex; flex-direction: column; gap: 5px; }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--text-primary);
+    padding: 3px 6px;
+    border-radius: 6px;
+    transition: background .15s;
+    cursor: pointer;
+  }
+  .legend-item:hover { background: var(--border); }
+  .legend-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.4);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+  }
+  .legend-count { margin-left: auto; font-size: 10px; color: var(--text-secondary); }
+  /* ── STATS ── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-chip {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-chip .num {
+    font-size: 20px; font-weight: 700;
+    font-family: 'Google Sans', sans-serif;
+    color: var(--accent);
+  }
+  .stat-chip .lbl { font-size: 10.5px; color: var(--text-secondary); margin-top: 2px; }
+  /* ── MEMBERS ── */
+  .member-item {
+    display: flex; align-items: center;
+    gap: 10px; padding: 7px 6px;
+    border-radius: 8px;
+  }
+  .member-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    font-family: 'Google Sans', sans-serif;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .member-info { flex: 1; }
+  .member-name { font-size: 12.5px; font-weight: 500; color: var(--text-primary); }
+  .member-roll { font-size: 11px; color: var(--text-secondary); }
+  /* ── MAP AREA ── */
+  #map-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #map { width: 100%; height: 100%; }
+  /* ── FLOATING SIDEBAR TOGGLE ── */
+  #sidebar-toggle {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 500;
+    background: var(--panel);
+    border: none;
+    border-radius: 8px;
+    width: 40px; height: 40px;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: box-shadow .2s;
+  }
+  #sidebar-toggle:hover { box-shadow: var(--shadow-hover); }
+  /* ── POPUP ── */
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,.15) !important;
+    padding: 0 !important;
+    overflow: hidden;
+    min-width: 220px;
+    font-family: 'Roboto', sans-serif;
+    background: var(--bg-sidebar) !important;
+    color: var(--text-primary) !important;
+  }
+  .leaflet-popup-tip { background: var(--bg-sidebar) !important; }
+  .popup-header {
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .popup-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .popup-icon .material-icons-round { font-size: 17px; color: #fff; }
+  .popup-label {
+    font-family: 'Google Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    color: var(--text-primary);
+  }
+  .popup-station { font-size: 11px; color: var(--text-secondary); }
+  .popup-body { padding: 10px 14px 12px; }
+  .popup-row {
+    display: flex; justify-content: space-between;
+    font-size: 12px; padding: 3px 0;
+    color: var(--text-secondary);
+  }
+  .popup-row strong { color: var(--text-primary); font-weight: 500; }
+  .popup-chip {
+    display: inline-block;
+    background: var(--chip-bg); color: var(--chip-color);
+    font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px;
+    margin-top: 6px; letter-spacing: .5px;
+  }
+  /* ── SCALE BAR ── */
+  .leaflet-control-scale-line {
+    border: 2px solid var(--text-primary) !important;
+    border-top: none !important;
+    background: var(--panel) !important;
+    color: var(--text-primary) !important;
+    font-size: 11px !important;
+    font-family: 'Roboto', sans-serif !important;
+    padding: 2px 5px !important;
+    border-radius: 0 0 4px 4px !important;
+  }
+  /* ── ATTRIBUTION ── */
+  .leaflet-control-attribution {
+    background: var(--panel) !important;
+    color: var(--text-secondary) !important;
+    font-size: 10px !important;
+  }
+  /* ── SEARCH BAR ── */
+  #search-bar {
+    position: absolute; top: 12px; left: 60px; right: 12px;
+    max-width: 360px;
+    z-index: 500;
+    display: flex;
+    background: var(--panel);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    height: 40px;
+  }
+  #search-bar .material-icons-round { font-size: 18px; color: var(--text-secondary); }
+  #search-input {
+    flex: 1; border: none; background: none;
+    font-size: 13px; color: var(--text-primary);
+    outline: none;
+    font-family: 'Roboto', sans-serif;
+  }
+  #search-input::placeholder { color: var(--text-secondary); }
+  /* ── ZOOM BTNs ── */
+  .leaflet-control-zoom {
+    border: none !important;
+    box-shadow: var(--shadow) !important;
+  }
+  .leaflet-control-zoom a {
+    background: var(--panel) !important;
+    color: var(--text-primary) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    font-size: 18px !important;
+    font-weight: 300 !important;
+    width: 34px !important; height: 34px !important;
+    line-height: 34px !important;
+    border-radius: 0 !important;
+  }
+  .leaflet-control-zoom a:first-child { border-radius: 8px 8px 0 0 !important; }
+  .leaflet-control-zoom a:last-child { border-radius: 0 0 8px 8px !important; border-bottom: none !important; }
+  .leaflet-control-zoom a:hover { background: var(--border) !important; }
+  /* ── COORD BAR ── */
+  #coord-bar {
+    position: absolute;
+    bottom: 26px; right: 12px;
+    z-index: 500;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow);
+    font-family: 'Roboto Mono', monospace;
+    pointer-events: none;
+  }
+  /* ── FEATURE COUNT CHIP ── */
+  #feat-count {
+    position: absolute; top: 60px; left: 12px;
+    z-index: 500;
+    background: var(--panel);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 5px;
+  }
+  #feat-count .material-icons-round { font-size: 13px; color: var(--badge-bg); }
+  /* ── LOADING ── */
+  #loading {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    z-index: 2000;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 24px 32px;
+    box-shadow: var(--shadow-hover);
+    text-align: center;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { font-size: 13px; color: var(--text-secondary); }
+  /* ── LEAFLET DARK ── */
+  [data-theme="dark"] .leaflet-tile { filter: brightness(0.75) saturate(0.8); }
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    :root { --sidebar-w: 280px; }
+    #sidebar { position: absolute; z-index: 999; height: 100%; }
+  }
+</style>
+</head>
+<body>
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <span class="material-icons-round">map</span>
+    </div>
+    <h1>Group 3 Map Dashboard</h1>
+  </div>
+  <div class="divider"></div>
+  <span class="subtitle">IIT Kanpur · CE673A/CE673M · UTM 44N</span>
+  <div class="spacer"></div>
+  <button class="icon-btn" id="theme-toggle" title="Toggle dark/light mode">
+    <span class="material-icons-round">dark_mode</span>
+  </button>
+  <a href="https://drive.google.com/drive/folders/1qrEXVJ7E6Qz4XeRNuV8PXlIEO-l_Dv-L" target="_blank">
+    <button class="icon-btn" title="Open Drive">
+      <span class="material-icons-round">folder_open</span>
+    </button>
+  </a>
+</div>
+
+<div id="main">
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="sidebar-inner">
+  <div class="sidebar-scroll">
+
+    <!-- STATS -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="material-icons-round">bar_chart</span>Survey Statistics
+      </div>
+      <div class="stats-grid">
+        <div class="stat-chip"><div class="num">496</div><div class="lbl">TS Features</div></div>
+        <div class="stat-chip"><div class="num">6</div><div class="lbl">GNSS Pts</div></div>
+        <div class="stat-chip"><div class="num">WGS84</div><div class="lbl">Datum</div></div>
+        <div class="stat-chip"><div class="num">44N</div><div class="lbl">UTM Zone</div></div>
+      </div>
+    </div>
+
+    <!-- LAYERS -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="material-icons-round">layers</span>Map Layers
+      </div>
+      <div id="layer-list">
+        <div class="layer-item">
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="lyr-ts" checked/>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <label for="lyr-ts">TS Feature Mapping</label>
+          <span class="badge">496</span>
+        </div>
+        <div class="layer-item">
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="lyr-gnss" checked/>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <label for="lyr-gnss">GNSS Control Points</label>
+          <span class="badge">6</span>
+        </div>
+        <div class="layer-item">
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="lyr-cluster" checked/>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <label for="lyr-cluster">Cluster Points</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTER BY FEATURE -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="material-icons-round">filter_list</span>Filter by Feature
+      </div>
+      <div id="filter-list"></div>
+    </div>
+
+    <!-- BASE MAPS -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="material-icons-round">map</span>Base Map
+      </div>
+      <div class="basemap-grid">
+        <button class="basemap-btn active" onclick="setBasemap('roadmap',this)">
+          <div class="thumb" style="background-image:url('https://mt1.google.com/vt/lyrs=m&x=1309&y=793&z=11');"></div>
+          <span>Roadmap</span>
+        </button>
+        <button class="basemap-btn" onclick="setBasemap('satellite',this)">
+          <div class="thumb" style="background-image:url('https://mt1.google.com/vt/lyrs=s&x=1309&y=793&z=11');"></div>
+          <span>Satellite</span>
+        </button>
+        <button class="basemap-btn" onclick="setBasemap('hybrid',this)">
+          <div class="thumb" style="background-image:url('https://mt1.google.com/vt/lyrs=y&x=1309&y=793&z=11');"></div>
+          <span>Hybrid</span>
+        </button>
+        <button class="basemap-btn" onclick="setBasemap('terrain',this)">
+          <div class="thumb" style="background-image:url('https://mt1.google.com/vt/lyrs=p&x=1309&y=793&z=11');"></div>
+          <span>Terrain</span>
+        </button>
+      </div>
+      <!-- Street View Note -->
+      <div style="margin-top:10px; padding:8px 10px; background:var(--chip-bg); border-radius:8px; display:flex; align-items:center; gap:6px;">
+        <span class="material-icons-round" style="font-size:15px; color:var(--chip-color)">streetview</span>
+        <span style="font-size:11.5px; color:var(--chip-color); font-weight:500;">Street View: Hold Ctrl + Click on map</span>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="material-icons-round">legend_toggle</span>Legend
+      </div>
+      <div id="legend-list"></div>
+    </div>
+
+    <!-- GROUP MEMBERS -->
+    <div class="section-card">
+      <div class="section-title">
+        <span class="material-icons-round">group</span>Group 3 Members
+      </div>
+      <div id="members">
+        <div class="member-item">
+          <div class="member-avatar" style="background:#4285f4;">S</div>
+          <div class="member-info">
+            <div class="member-name">Samson Mazonde Banda</div>
+            <div class="member-roll">Roll No: 251030092</div>
+          </div>
+        </div>
+        <div class="member-item">
+          <div class="member-avatar" style="background:#ea4335;">T</div>
+          <div class="member-info">
+            <div class="member-name">Teja Surya H</div>
+            <div class="member-roll">Roll No: 251030111</div>
+          </div>
+        </div>
+        <div class="member-item">
+          <div class="member-avatar" style="background:#34a853;">R</div>
+          <div class="member-info">
+            <div class="member-name">Rupak Ganvir</div>
+            <div class="member-roll">Roll No: 251030090</div>
+          </div>
+        </div>
+        <div class="member-item">
+          <div class="member-avatar" style="background:#fbbc04; color:#202124;">A</div>
+          <div class="member-info">
+            <div class="member-name">Avichal Srivastava</div>
+            <div class="member-roll">Roll No: 251030028</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- sidebar-scroll -->
+  </div><!-- sidebar-inner -->
+</div><!-- sidebar -->
+
+<!-- MAP AREA -->
+<div id="map-wrap">
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading survey data…</p>
+  </div>
+  <button id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+    <span class="material-icons-round">menu</span>
+  </button>
+  <div id="search-bar">
+    <span class="material-icons-round">search</span>
+    <input id="search-input" type="text" placeholder="Search station ID or feature…"/>
+    <span class="material-icons-round" style="cursor:pointer;font-size:16px;" onclick="clearSearch()">close</span>
+  </div>
+  <div id="feat-count">
+    <span class="material-icons-round">place</span>
+    <span id="feat-num">496</span> features visible
+  </div>
+  <div id="map"></div>
+  <div id="coord-bar">Lat: — &nbsp;|&nbsp; Lng: —</div>
+</div>
+</div><!-- main -->
+
+<!-- Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+
+<script>
+// ── DATA ──
+const TS_DATA = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231462, 26.5169857]}, "properties": {"station": "gcp5", "easting": 423424.892, "northing": 2933168.095, "elevation": 127.94, "code": "CP", "label": "Control Point", "color": "#FFD93D"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323423, 26.5168668]}, "properties": {"station": "gcp11", "easting": 423512.53, "northing": 2933154.401, "elevation": 128.118, "code": "CP", "label": "Control Point", "color": "#FFD93D"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315085, 26.5169224]}, "properties": {"station": "1", "easting": 423429.481, "northing": 2933161.058, "elevation": 127.734, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314098, 26.5168555]}, "properties": {"station": "2", "easting": 423419.607, "northing": 2933153.699, "elevation": 127.066, "code": "TREE", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231426, 26.5167358]}, "properties": {"station": "3", "easting": 423421.144, "northing": 2933140.44, "elevation": 127.005, "code": "TREE", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313656, 26.5168335]}, "properties": {"station": "4", "easting": 423415.19, "northing": 2933151.294, "elevation": 127.093, "code": "TREE", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314874, 26.5168138]}, "properties": {"station": "5", "easting": 423427.312, "northing": 2933149.04, "elevation": 127.015, "code": "TREE", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314815, 26.5166953]}, "properties": {"station": "6", "easting": 423426.642, "northing": 2933135.914, "elevation": 127.418, "code": "TREE", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314849, 26.5167748]}, "properties": {"station": "7", "easting": 423427.038, "northing": 2933144.722, "elevation": 126.988, "code": "TREE", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314691, 26.5168062]}, "properties": {"station": "8", "easting": 423425.482, "northing": 2933148.203, "elevation": 127.6, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315519, 26.5167677]}, "properties": {"station": "9", "easting": 423433.704, "northing": 2933143.89, "elevation": 127.406, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316243, 26.5168255]}, "properties": {"station": "10", "easting": 423440.955, "northing": 2933150.254, "elevation": 127.954, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231682, 26.5169164]}, "properties": {"station": "11", "easting": 423446.765, "northing": 2933160.288, "elevation": 127.633, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319057, 26.5169082]}, "properties": {"station": "12", "easting": 423469.049, "northing": 2933159.247, "elevation": 127.451, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323587, 26.5168941]}, "properties": {"station": "13", "easting": 423514.181, "northing": 2933157.415, "elevation": 127.439, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321317, 26.5169011]}, "properties": {"station": "14", "easting": 423491.565, "northing": 2933158.322, "elevation": 127.544, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320563, 26.516811]}, "properties": {"station": "15", "easting": 423483.992, "northing": 2933148.386, "elevation": 127.567, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2329894, 26.5169763]}, "properties": {"station": "16", "easting": 423577.08, "northing": 2933166.135, "elevation": 126.951, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323638, 26.517002]}, "properties": {"station": "17", "easting": 423514.76, "northing": 2933169.355, "elevation": 127.321, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2318502, 26.5170275]}, "properties": {"station": "18", "easting": 423463.598, "northing": 2933172.494, "elevation": 127.623, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322008, 26.5170292]}, "properties": {"station": "19", "easting": 423498.536, "northing": 2933172.474, "elevation": 127.416, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317124, 26.5170416]}, "properties": {"station": "20", "easting": 423449.877, "northing": 2933174.133, "elevation": 127.397, "code": "FL", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316547, 26.5170419]}, "properties": {"station": "21", "easting": 423444.128, "northing": 2933174.207, "elevation": 127.495, "code": "CB", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316516, 26.5171032]}, "properties": {"station": "22", "easting": 423443.868, "northing": 2933180.998, "elevation": 127.446, "code": "CB", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231275, 26.5170497]}, "properties": {"station": "23", "easting": 423406.301, "northing": 2933175.294, "elevation": 127.286, "code": "FL", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313478, 26.5169796]}, "properties": {"station": "24", "easting": 423413.515, "northing": 2933167.479, "elevation": 127.572, "code": "FL", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312964, 26.5169788]}, "properties": {"station": "25", "easting": 423408.385, "northing": 2933167.422, "elevation": 127.614, "code": "FL", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308452, 26.5170503]}, "properties": {"station": "26", "easting": 423363.475, "northing": 2933175.62, "elevation": 126.954, "code": "FL", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308393, 26.5170864]}, "properties": {"station": "27", "easting": 423362.915, "northing": 2933179.622, "elevation": 128.306, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308424, 26.5168713]}, "properties": {"station": "28", "easting": 423363.075, "northing": 2933155.791, "elevation": 127.451, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312243, 26.5168116]}, "properties": {"station": "29", "easting": 423401.097, "northing": 2933148.953, "elevation": 127.659, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2311735, 26.5169102]}, "properties": {"station": "30", "easting": 423396.1, "northing": 2933159.903, "elevation": 127.663, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312443, 26.5168876]}, "properties": {"station": "31", "easting": 423403.132, "northing": 2933157.362, "elevation": 127.297, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2311705, 26.5169106]}, "properties": {"station": "32", "easting": 423395.802, "northing": 2933159.949, "elevation": 127.16, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2311115, 26.5170257]}, "properties": {"station": "33", "easting": 423389.991, "northing": 2933172.736, "elevation": 127.395, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313754, 26.5169695]}, "properties": {"station": "34", "easting": 423416.258, "northing": 2933166.349, "elevation": 128.398, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313255, 26.516967]}, "properties": {"station": "35", "easting": 423411.277, "northing": 2933166.099, "elevation": 128.372, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312745, 26.5169665]}, "properties": {"station": "36", "easting": 423406.198, "northing": 2933166.074, "elevation": 128.287, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312819, 26.5169351]}, "properties": {"station": "37", "easting": 423406.917, "northing": 2933162.597, "elevation": 128.344, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313336, 26.516936]}, "properties": {"station": "38", "easting": 423412.071, "northing": 2933162.668, "elevation": 128.373, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314962, 26.5168327]}, "properties": {"station": "39", "easting": 423428.196, "northing": 2933151.124, "elevation": 128.095, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315106, 26.5168236]}, "properties": {"station": "40", "easting": 423429.629, "northing": 2933150.104, "elevation": 128.087, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321317, 26.5169013]}, "properties": {"station": "41", "easting": 423491.571, "northing": 2933158.342, "elevation": 127.426, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323587, 26.5168943]}, "properties": {"station": "42", "easting": 423514.181, "northing": 2933157.43, "elevation": 127.283, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322404, 26.5167862]}, "properties": {"station": "43", "easting": 423502.325, "northing": 2933145.534, "elevation": 128.741, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320935, 26.5168181]}, "properties": {"station": "44", "easting": 423487.709, "northing": 2933149.156, "elevation": 128.192, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231996, 26.5168265]}, "properties": {"station": "45", "easting": 423477.993, "northing": 2933150.143, "elevation": 128.187, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2318392, 26.5168284]}, "properties": {"station": "46", "easting": 423462.374, "northing": 2933150.445, "elevation": 128.208, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316481, 26.5168353]}, "properties": {"station": "47", "easting": 423443.332, "northing": 2933151.321, "elevation": 128.206, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316763, 26.5169061]}, "properties": {"station": "48", "easting": 423446.197, "northing": 2933159.152, "elevation": 128.229, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2318936, 26.5168976]}, "properties": {"station": "49", "easting": 423467.836, "northing": 2933158.073, "elevation": 128.231, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314555, 26.5169038]}, "properties": {"station": "50", "easting": 423424.192, "northing": 2933159.022, "elevation": 127.936, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319495, 26.5168933]}, "properties": {"station": "51", "easting": 423473.403, "northing": 2933157.562, "elevation": 128.235, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232377, 26.516863]}, "properties": {"station": "52", "easting": 423515.987, "northing": 2933153.955, "elevation": 128.129, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320195, 26.5168743]}, "properties": {"station": "53", "easting": 423480.366, "northing": 2933155.423, "elevation": 128.117, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320115, 26.5169761]}, "properties": {"station": "54", "easting": 423479.636, "northing": 2933166.697, "elevation": 127.974, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320322, 26.5169751]}, "properties": {"station": "55", "easting": 423481.698, "northing": 2933166.583, "elevation": 127.974, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315376, 26.5169033]}, "properties": {"station": "56", "easting": 423432.371, "northing": 2933158.923, "elevation": 128.133, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315024, 26.5168513]}, "properties": {"station": "57", "easting": 423428.826, "northing": 2933153.183, "elevation": 128.049, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314787, 26.5168394]}, "properties": {"station": "58", "easting": 423426.457, "northing": 2933151.88, "elevation": 128.06, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314588, 26.5168081]}, "properties": {"station": "59", "easting": 423424.459, "northing": 2933148.425, "elevation": 128.073, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314257, 26.5168392]}, "properties": {"station": "60", "easting": 423421.178, "northing": 2933151.888, "elevation": 128.127, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231437, 26.5168768]}, "properties": {"station": "61", "easting": 423422.333, "northing": 2933156.048, "elevation": 128.135, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314699, 26.5168963]}, "properties": {"station": "62", "easting": 423425.624, "northing": 2933158.182, "elevation": 128.137, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312548, 26.5169541]}, "properties": {"station": "63", "easting": 423404.227, "northing": 2933164.72, "elevation": 128.069, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312707, 26.5168975]}, "properties": {"station": "64", "easting": 423405.772, "northing": 2933158.433, "elevation": 128.003, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313562, 26.5168992]}, "properties": {"station": "65", "easting": 423414.295, "northing": 2933158.577, "elevation": 128.003, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313754, 26.5169594]}, "properties": {"station": "66", "easting": 423416.247, "northing": 2933165.228, "elevation": 128.036, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315028, 26.5169237]}, "properties": {"station": "67", "easting": 423428.914, "northing": 2933161.198, "elevation": 128.144, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315581, 26.5169688]}, "properties": {"station": "68", "easting": 423434.455, "northing": 2933166.162, "elevation": 128.128, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316688, 26.516919]}, "properties": {"station": "69", "easting": 423445.451, "northing": 2933160.585, "elevation": 128.148, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317311, 26.5169637]}, "properties": {"station": "70", "easting": 423451.688, "northing": 2933165.498, "elevation": 128.099, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319424, 26.5169192]}, "properties": {"station": "71", "easting": 423472.718, "northing": 2933160.441, "elevation": 128.175, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231944, 26.5169612]}, "properties": {"station": "72", "easting": 423472.906, "northing": 2933165.091, "elevation": 128.087, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322789, 26.5169056]}, "properties": {"station": "73", "easting": 423506.234, "northing": 2933158.735, "elevation": 128.077, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323486, 26.5168956]}, "properties": {"station": "74", "easting": 423513.173, "northing": 2933157.58, "elevation": 128.051, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321776, 26.516826]}, "properties": {"station": "75", "easting": 423496.089, "northing": 2933149.977, "elevation": 128.041, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320517, 26.516891]}, "properties": {"station": "76", "easting": 423483.589, "northing": 2933157.256, "elevation": 128.125, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231962, 26.5168922]}, "properties": {"station": "77", "easting": 423474.648, "northing": 2933157.437, "elevation": 128.131, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314573, 26.5167754]}, "properties": {"station": "78", "easting": 423424.288, "northing": 2933144.803, "elevation": 128.071, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314108, 26.5167762]}, "properties": {"station": "79", "easting": 423419.655, "northing": 2933144.924, "elevation": 128.101, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314347, 26.5162596]}, "properties": {"station": "80", "easting": 423421.69, "northing": 2933087.686, "elevation": 128.058, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313757, 26.516175]}, "properties": {"station": "81", "easting": 423415.758, "northing": 2933078.348, "elevation": 128.098, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231424, 26.5159474]}, "properties": {"station": "82", "easting": 423420.422, "northing": 2933053.113, "elevation": 128.074, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313795, 26.5165473]}, "properties": {"station": "83", "easting": 423416.386, "northing": 2933119.585, "elevation": 128.192, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314688, 26.5168062]}, "properties": {"station": "84", "easting": 423425.451, "northing": 2933148.202, "elevation": 127.546, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231462, 26.516636]}, "properties": {"station": "85", "easting": 423424.665, "northing": 2933129.365, "elevation": 127.247, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314473, 26.5162817]}, "properties": {"station": "86", "easting": 423422.961, "northing": 2933090.124, "elevation": 127.659, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314477, 26.5162816]}, "properties": {"station": "87", "easting": 423423.004, "northing": 2933090.111, "elevation": 127.659, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314838, 26.5166196]}, "properties": {"station": "88", "easting": 423426.821, "northing": 2933127.534, "elevation": 127.583, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314834, 26.5166197]}, "properties": {"station": "89", "easting": 423426.782, "northing": 2933127.546, "elevation": 127.583, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231358, 26.5165836]}, "properties": {"station": "90", "easting": 423414.265, "northing": 2933123.613, "elevation": 127.381, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313559, 26.5165435]}, "properties": {"station": "91", "easting": 423414.025, "northing": 2933119.177, "elevation": 127.141, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314784, 26.5166589]}, "properties": {"station": "92", "easting": 423426.313, "northing": 2933131.89, "elevation": 127.565, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230711, 26.5168616]}, "properties": {"station": "gcp6", "easting": 423349.983, "northing": 2933154.792, "elevation": 127.847, "code": "CP", "label": "Control Point", "color": "#FFD93D"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.23081, 26.5168968]}, "properties": {"station": "93", "easting": 423359.87, "northing": 2933158.631, "elevation": 127.551, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230731, 26.5168132]}, "properties": {"station": "94", "easting": 423351.945, "northing": 2933149.42, "elevation": 127.766, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307333, 26.5164491]}, "properties": {"station": "95", "easting": 423351.926, "northing": 2933109.09, "elevation": 127.014, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307431, 26.5161732]}, "properties": {"station": "96", "easting": 423352.725, "northing": 2933078.529, "elevation": 127.272, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306546, 26.5163291]}, "properties": {"station": "97", "easting": 423344.006, "northing": 2933095.855, "elevation": 127.619, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305597, 26.5162173]}, "properties": {"station": "98", "easting": 423334.473, "northing": 2933083.524, "elevation": 127.557, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307343, 26.5174867]}, "properties": {"station": "99", "easting": 423352.716, "northing": 2933224.019, "elevation": 127.574, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307375, 26.5173397]}, "properties": {"station": "100", "easting": 423352.943, "northing": 2933207.731, "elevation": 127.645, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307288, 26.5171495]}, "properties": {"station": "101", "easting": 423351.942, "northing": 2933186.674, "elevation": 127.856, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306482, 26.5175949]}, "properties": {"station": "102", "easting": 423344.207, "northing": 2933236.053, "elevation": 127.849, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306467, 26.517311]}, "properties": {"station": "103", "easting": 423343.872, "northing": 2933204.612, "elevation": 127.62, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306494, 26.5169853]}, "properties": {"station": "104", "easting": 423343.925, "northing": 2933168.532, "elevation": 127.798, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307469, 26.5170151]}, "properties": {"station": "105", "easting": 423353.656, "northing": 2933171.776, "elevation": 127.778, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307478, 26.5169646]}, "properties": {"station": "106", "easting": 423353.718, "northing": 2933166.178, "elevation": 127.086, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307507, 26.5169218]}, "properties": {"station": "107", "easting": 423353.981, "northing": 2933161.44, "elevation": 127.364, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306375, 26.5168515]}, "properties": {"station": "108", "easting": 423342.652, "northing": 2933153.716, "elevation": 127.578, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305649, 26.5165327]}, "properties": {"station": "109", "easting": 423335.201, "northing": 2933118.457, "elevation": 127.244, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307461, 26.5166623]}, "properties": {"station": "110", "easting": 423353.345, "northing": 2933132.698, "elevation": 126.917, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307498, 26.5165899]}, "properties": {"station": "111", "easting": 423353.67, "northing": 2933124.676, "elevation": 126.946, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307501, 26.5164961]}, "properties": {"station": "112", "easting": 423353.632, "northing": 2933114.292, "elevation": 127.202, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307575, 26.5162704]}, "properties": {"station": "113", "easting": 423354.219, "northing": 2933089.283, "elevation": 127.466, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307677, 26.5160192]}, "properties": {"station": "114", "easting": 423355.068, "northing": 2933061.459, "elevation": 127.414, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307581, 26.5158825]}, "properties": {"station": "115", "easting": 423354.028, "northing": 2933046.328, "elevation": 127.394, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307564, 26.5157004]}, "properties": {"station": "116", "easting": 423353.732, "northing": 2933026.152, "elevation": 127.27, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307568, 26.5156064]}, "properties": {"station": "117", "easting": 423353.711, "northing": 2933015.749, "elevation": 127.46, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306564, 26.515752]}, "properties": {"station": "118", "easting": 423343.801, "northing": 2933031.926, "elevation": 127.711, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230842, 26.5168713]}, "properties": {"station": "119", "easting": 423363.04, "northing": 2933155.794, "elevation": 127.861, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2310112, 26.5169195]}, "properties": {"station": "120", "easting": 423379.934, "northing": 2933161.033, "elevation": 128.016, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2310042, 26.5168878]}, "properties": {"station": "121", "easting": 423379.209, "northing": 2933157.521, "elevation": 127.903, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308501, 26.5169569]}, "properties": {"station": "122", "easting": 423363.901, "northing": 2933165.264, "elevation": 127.91, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307815, 26.5169369]}, "properties": {"station": "123", "easting": 423357.06, "northing": 2933163.093, "elevation": 127.877, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307108, 26.5169241]}, "properties": {"station": "124", "easting": 423350.004, "northing": 2933161.718, "elevation": 127.84, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306616, 26.5169252]}, "properties": {"station": "125", "easting": 423345.102, "northing": 2933161.871, "elevation": 127.785, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307447, 26.5166842]}, "properties": {"station": "126", "easting": 423353.224, "northing": 2933135.131, "elevation": 127.819, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307918, 26.5166916]}, "properties": {"station": "127", "easting": 423357.922, "northing": 2933135.918, "elevation": 127.795, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307299, 26.5165438]}, "properties": {"station": "128", "easting": 423351.657, "northing": 2933119.585, "elevation": 127.795, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307721, 26.5165247]}, "properties": {"station": "129", "easting": 423355.849, "northing": 2933117.447, "elevation": 127.815, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307307, 26.5162968]}, "properties": {"station": "130", "easting": 423351.57, "northing": 2933092.23, "elevation": 127.986, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307203, 26.5158484]}, "properties": {"station": "131", "easting": 423350.232, "northing": 2933042.574, "elevation": 128.022, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306715, 26.5158523]}, "properties": {"station": "132", "easting": 423345.375, "northing": 2933043.036, "elevation": 127.973, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307442, 26.5156329]}, "properties": {"station": "133", "easting": 423352.476, "northing": 2933018.687, "elevation": 128.026, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306604, 26.515597]}, "properties": {"station": "134", "easting": 423344.099, "northing": 2933014.765, "elevation": 127.966, "code": "PS", "label": "Parking Space", "color": "#3F51B5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307495, 26.5166411]}, "properties": {"station": "135", "easting": 423353.674, "northing": 2933130.349, "elevation": 127.929, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307677, 26.5166573]}, "properties": {"station": "136", "easting": 423355.496, "northing": 2933132.134, "elevation": 127.911, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307373, 26.5168919]}, "properties": {"station": "137", "easting": 423352.62, "northing": 2933158.133, "elevation": 127.985, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230763, 26.5168955]}, "properties": {"station": "138", "easting": 423355.181, "northing": 2933158.516, "elevation": 127.918, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308532, 26.5169149]}, "properties": {"station": "139", "easting": 423364.181, "northing": 2933160.619, "elevation": 127.993, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2309036, 26.5168788]}, "properties": {"station": "140", "easting": 423369.178, "northing": 2933156.583, "elevation": 128.123, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323191, 26.5167407]}, "properties": {"station": "141", "easting": 423510.129, "northing": 2933140.442, "elevation": 127.872, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323988, 26.5167622]}, "properties": {"station": "142", "easting": 423518.092, "northing": 2933142.784, "elevation": 127.895, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323914, 26.5165922]}, "properties": {"station": "143", "easting": 423517.241, "northing": 2933123.956, "elevation": 127.578, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323863, 26.5164574]}, "properties": {"station": "144", "easting": 423516.64, "northing": 2933109.022, "elevation": 128.943, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232326, 26.5161688]}, "properties": {"station": "145", "easting": 423510.437, "northing": 2933077.095, "elevation": 131.729, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323145, 26.5165934]}, "properties": {"station": "146", "easting": 423509.58, "northing": 2933124.136, "elevation": 127.543, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322721, 26.5159908]}, "properties": {"station": "147", "easting": 423504.954, "northing": 2933057.421, "elevation": 128.307, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322885, 26.5158256]}, "properties": {"station": "148", "easting": 423506.474, "northing": 2933039.111, "elevation": 128.293, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323163, 26.5167429]}, "properties": {"station": "149", "easting": 423509.855, "northing": 2933140.694, "elevation": 128.092, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322436, 26.5167425]}, "properties": {"station": "150", "easting": 423502.615, "northing": 2933140.685, "elevation": 128.087, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323818, 26.5167219]}, "properties": {"station": "151", "easting": 423516.364, "northing": 2933138.322, "elevation": 128.126, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323835, 26.5166654]}, "properties": {"station": "152", "easting": 423516.498, "northing": 2933132.067, "elevation": 128.098, "code": "MN", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323682, 26.5164641]}, "properties": {"station": "153", "easting": 423514.841, "northing": 2933109.782, "elevation": 128.155, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323075, 26.5164595]}, "properties": {"station": "154", "easting": 423508.793, "northing": 2933109.306, "elevation": 128.065, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323278, 26.5162886]}, "properties": {"station": "155", "easting": 423510.7, "northing": 2933090.366, "elevation": 128.031, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322914, 26.5162362]}, "properties": {"station": "156", "easting": 423507.041, "northing": 2933084.586, "elevation": 128.102, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322665, 26.5159272]}, "properties": {"station": "157", "easting": 423504.352, "northing": 2933050.379, "elevation": 128.094, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322866, 26.5161495]}, "properties": {"station": "158", "easting": 423506.503, "northing": 2933074.98, "elevation": 128.073, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322883, 26.5158257]}, "properties": {"station": "159", "easting": 423506.454, "northing": 2933039.115, "elevation": 128.052, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322721, 26.5159912]}, "properties": {"station": "160", "easting": 423504.951, "northing": 2933057.457, "elevation": 128.209, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322825, 26.5159352]}, "properties": {"station": "161", "easting": 423505.948, "northing": 2933051.253, "elevation": 128.115, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322812, 26.5159355]}, "properties": {"station": "162", "easting": 423505.826, "northing": 2933051.282, "elevation": 128.115, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322721, 26.5157264]}, "properties": {"station": "163", "easting": 423504.782, "northing": 2933028.136, "elevation": 128.114, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314249, 26.5149793]}, "properties": {"station": "CP10", "easting": 423419.87, "northing": 2932945.891, "elevation": 127.991, "code": "CP", "label": "Control Point", "color": "#FFD93D"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306741, 26.515069]}, "properties": {"station": "CP8", "easting": 423345.113, "northing": 2932956.276, "elevation": 127.979, "code": "CP", "label": "Control Point", "color": "#FFD93D"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306532, 26.5150181]}, "properties": {"station": "170", "easting": 423342.997, "northing": 2932950.653, "elevation": 128.235, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230935, 26.5150797]}, "properties": {"station": "171", "easting": 423371.121, "northing": 2932957.299, "elevation": 127.187, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2310061, 26.5150832]}, "properties": {"station": "172", "easting": 423378.202, "northing": 2932957.649, "elevation": 127.328, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314337, 26.5153679]}, "properties": {"station": "173", "easting": 423421.001, "northing": 2932988.929, "elevation": 127.409, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314613, 26.5152686]}, "properties": {"station": "174", "easting": 423423.688, "northing": 2932977.909, "elevation": 127.575, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231455, 26.5150665]}, "properties": {"station": "175", "easting": 423422.925, "northing": 2932955.528, "elevation": 127.777, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231455, 26.5151397]}, "properties": {"station": "176", "easting": 423422.974, "northing": 2932963.638, "elevation": 127.071, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316522, 26.5151384]}, "properties": {"station": "177", "easting": 423442.623, "northing": 2932963.379, "elevation": 127.256, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315791, 26.5150801]}, "properties": {"station": "178", "easting": 423435.301, "northing": 2932956.964, "elevation": 127.592, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316071, 26.5150749]}, "properties": {"station": "179", "easting": 423438.085, "northing": 2932956.367, "elevation": 127.467, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316097, 26.5150651]}, "properties": {"station": "180", "easting": 423438.335, "northing": 2932955.285, "elevation": 127.178, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317069, 26.5150968]}, "properties": {"station": "181", "easting": 423448.041, "northing": 2932958.733, "elevation": 127.297, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316586, 26.5150665]}, "properties": {"station": "182", "easting": 423443.21, "northing": 2932955.403, "elevation": 127.155, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317848, 26.5150955]}, "properties": {"station": "183", "easting": 423455.801, "northing": 2932958.542, "elevation": 127.249, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317519, 26.515066]}, "properties": {"station": "184", "easting": 423452.504, "northing": 2932955.298, "elevation": 127.336, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317926, 26.5150628]}, "properties": {"station": "185", "easting": 423456.563, "northing": 2932954.915, "elevation": 127.722, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319726, 26.515098]}, "properties": {"station": "186", "easting": 423474.518, "northing": 2932958.71, "elevation": 127.552, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2318468, 26.5150666]}, "properties": {"station": "187", "easting": 423461.96, "northing": 2932955.302, "elevation": 127.67, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232034, 26.5150982]}, "properties": {"station": "188", "easting": 423480.638, "northing": 2932958.701, "elevation": 127.187, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320934, 26.5150982]}, "properties": {"station": "189", "easting": 423486.558, "northing": 2932958.656, "elevation": 127.104, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319547, 26.5150649]}, "properties": {"station": "190", "easting": 423472.71, "northing": 2932955.058, "elevation": 127.286, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320765, 26.5150652]}, "properties": {"station": "191", "easting": 423484.847, "northing": 2932955.014, "elevation": 127.11, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322255, 26.5150697]}, "properties": {"station": "192", "easting": 423499.698, "northing": 2932955.424, "elevation": 127.456, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323927, 26.5150858]}, "properties": {"station": "193", "easting": 423516.369, "northing": 2932957.108, "elevation": 127.326, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322158, 26.5151762]}, "properties": {"station": "194", "easting": 423498.8, "northing": 2932967.221, "elevation": 127.089, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2325497, 26.5150529]}, "properties": {"station": "195", "easting": 423531.994, "northing": 2932953.376, "elevation": 128.026, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322356, 26.5150512]}, "properties": {"station": "196", "easting": 423500.692, "northing": 2932953.367, "elevation": 127.344, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231919, 26.5150503]}, "properties": {"station": "197", "easting": 423469.146, "northing": 2932953.46, "elevation": 127.625, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316034, 26.5150484]}, "properties": {"station": "198", "easting": 423437.701, "northing": 2932953.439, "elevation": 127.899, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320781, 26.5149766]}, "properties": {"station": "199", "easting": 423484.954, "northing": 2932945.199, "elevation": 128.344, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317601, 26.5149746]}, "properties": {"station": "200", "easting": 423453.265, "northing": 2932945.166, "elevation": 127.933, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319828, 26.5149145]}, "properties": {"station": "201", "easting": 423475.413, "northing": 2932938.375, "elevation": 127.941, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312922, 26.5150469]}, "properties": {"station": "202", "easting": 423406.691, "northing": 2932953.451, "elevation": 127.882, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306602, 26.5150439]}, "properties": {"station": "203", "easting": 423343.712, "northing": 2932953.5, "elevation": 128.58, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313629, 26.515187]}, "properties": {"station": "204", "easting": 423413.821, "northing": 2932968.936, "elevation": 128.461, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315923, 26.5151803]}, "properties": {"station": "205", "easting": 423436.684, "northing": 2932968.055, "elevation": 127.28, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314719, 26.5151812]}, "properties": {"station": "206", "easting": 423424.682, "northing": 2932968.224, "elevation": 130.062, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316548, 26.5152294]}, "properties": {"station": "207", "easting": 423442.936, "northing": 2932973.454, "elevation": 127.821, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231379, 26.5150814]}, "properties": {"station": "208", "easting": 423415.358, "northing": 2932957.228, "elevation": 127.589, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315331, 26.5150739]}, "properties": {"station": "209", "easting": 423430.712, "northing": 2932956.303, "elevation": 127.958, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315028, 26.5151257]}, "properties": {"station": "210", "easting": 423427.723, "northing": 2932962.06, "elevation": 127.974, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315974, 26.5151408]}, "properties": {"station": "211", "easting": 423437.166, "northing": 2932963.676, "elevation": 127.828, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316376, 26.5150857]}, "properties": {"station": "212", "easting": 423441.127, "northing": 2932957.548, "elevation": 127.876, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316879, 26.515053]}, "properties": {"station": "213", "easting": 423446.123, "northing": 2932953.892, "elevation": 127.867, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231809, 26.5151721]}, "properties": {"station": "214", "easting": 423458.263, "northing": 2932967.02, "elevation": 127.776, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2318262, 26.5150901]}, "properties": {"station": "215", "easting": 423459.921, "northing": 2932957.924, "elevation": 127.793, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319329, 26.5151177]}, "properties": {"station": "216", "easting": 423470.58, "northing": 2932960.912, "elevation": 127.813, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320281, 26.5150508]}, "properties": {"station": "217", "easting": 423480.02, "northing": 2932953.449, "elevation": 127.811, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320518, 26.5151378]}, "properties": {"station": "218", "easting": 423482.437, "northing": 2932963.073, "elevation": 127.801, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232177, 26.5151715]}, "properties": {"station": "219", "easting": 423494.936, "northing": 2932966.731, "elevation": 127.729, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321874, 26.5150555]}, "properties": {"station": "220", "easting": 423495.896, "northing": 2932953.873, "elevation": 127.8, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321827, 26.5149915]}, "properties": {"station": "221", "easting": 423495.386, "northing": 2932946.794, "elevation": 127.908, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320442, 26.51499]}, "properties": {"station": "222", "easting": 423481.577, "northing": 2932946.711, "elevation": 127.86, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320856, 26.5149878]}, "properties": {"station": "223", "easting": 423485.71, "northing": 2932946.437, "elevation": 127.728, "code": "MN", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2318263, 26.5149887]}, "properties": {"station": "224", "easting": 423459.873, "northing": 2932946.686, "elevation": 127.914, "code": "MN", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314524, 26.5150358]}, "properties": {"station": "225", "easting": 423422.648, "northing": 2932952.129, "elevation": 127.999, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313386, 26.5150352]}, "properties": {"station": "226", "easting": 423411.303, "northing": 2932952.138, "elevation": 128.007, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2309984, 26.5150359]}, "properties": {"station": "227", "easting": 423377.409, "northing": 2932952.414, "elevation": 127.74, "code": "MN", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230833, 26.5150317]}, "properties": {"station": "228", "easting": 423360.92, "northing": 2932952.044, "elevation": 127.957, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308465, 26.5149838]}, "properties": {"station": "229", "easting": 423362.238, "northing": 2932946.732, "elevation": 127.96, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308056, 26.5150365]}, "properties": {"station": "230", "easting": 423358.191, "northing": 2932952.599, "elevation": 128.055, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307826, 26.5150436]}, "properties": {"station": "231", "easting": 423355.908, "northing": 2932953.398, "elevation": 128.061, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230751, 26.5150635]}, "properties": {"station": "232", "easting": 423352.77, "northing": 2932955.618, "elevation": 127.95, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2309813, 26.5150451]}, "properties": {"station": "233", "easting": 423375.706, "northing": 2932953.443, "elevation": 128.021, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313183, 26.5150524]}, "properties": {"station": "234", "easting": 423409.294, "northing": 2932954.049, "elevation": 128.057, "code": "SB", "label": "Seating Bench", "color": "#795548"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313371, 26.5150561]}, "properties": {"station": "235", "easting": 423411.164, "northing": 2932954.445, "elevation": 128.059, "code": "SB", "label": "Seating Bench", "color": "#795548"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313517, 26.5150582]}, "properties": {"station": "236", "easting": 423412.624, "northing": 2932954.672, "elevation": 128.06, "code": "SB", "label": "Seating Bench", "color": "#795548"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314432, 26.5150584]}, "properties": {"station": "237", "easting": 423421.742, "northing": 2932954.643, "elevation": 128.063, "code": "SB", "label": "Seating Bench", "color": "#795548"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314481, 26.5150483]}, "properties": {"station": "238", "easting": 423422.22, "northing": 2932953.517, "elevation": 127.708, "code": "SB", "label": "Seating Bench", "color": "#795548"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319574, 26.5151868]}, "properties": {"station": "239", "easting": 423473.061, "northing": 2932968.559, "elevation": 128.559, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319774, 26.5151343]}, "properties": {"station": "240", "easting": 423475.017, "northing": 2932962.729, "elevation": 128.558, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319304, 26.5149702]}, "properties": {"station": "241", "easting": 423470.226, "northing": 2932944.586, "elevation": 128.497, "code": "SB", "label": "Seating Bench", "color": "#795548"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323886, 26.5149715]}, "properties": {"station": "242", "easting": 423515.887, "northing": 2932944.452, "elevation": 128.437, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313631, 26.515187]}, "properties": {"station": "243", "easting": 423413.841, "northing": 2932968.931, "elevation": 129.509, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313635, 26.5156109]}, "properties": {"station": "244", "easting": 423414.163, "northing": 2933015.882, "elevation": 127.659, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313659, 26.5152041]}, "properties": {"station": "245", "easting": 423414.133, "northing": 2932970.821, "elevation": 128.172, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313414, 26.5152465]}, "properties": {"station": "246", "easting": 423411.721, "northing": 2932975.535, "elevation": 128.12, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313123, 26.5152435]}, "properties": {"station": "247", "easting": 423408.822, "northing": 2932975.223, "elevation": 128.093, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312494, 26.5152677]}, "properties": {"station": "248", "easting": 423402.571, "northing": 2932977.942, "elevation": 128.1, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312369, 26.5153522]}, "properties": {"station": "249", "easting": 423401.378, "northing": 2932987.302, "elevation": 128.079, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313685, 26.5154005]}, "properties": {"station": "250", "easting": 423414.525, "northing": 2932992.577, "elevation": 128.157, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231368, 26.5154869]}, "properties": {"station": "251", "easting": 423414.535, "northing": 2933002.149, "elevation": 128.156, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313656, 26.5155913]}, "properties": {"station": "252", "easting": 423414.365, "northing": 2933013.706, "elevation": 128.153, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313649, 26.5156782]}, "properties": {"station": "253", "easting": 423414.353, "northing": 2933023.331, "elevation": 128.161, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231351, 26.5157953]}, "properties": {"station": "254", "easting": 423413.045, "northing": 2933036.315, "elevation": 128.137, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313617, 26.515984]}, "properties": {"station": "255", "easting": 423414.239, "northing": 2933057.209, "elevation": 128.222, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313644, 26.5159811]}, "properties": {"station": "256", "easting": 423414.502, "northing": 2933056.88, "elevation": 128.122, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313623, 26.5159321]}, "properties": {"station": "257", "easting": 423414.257, "northing": 2933051.461, "elevation": 128.121, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.23142, 26.5158803]}, "properties": {"station": "258", "easting": 423419.978, "northing": 2933045.684, "elevation": 128.105, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314245, 26.5159777]}, "properties": {"station": "259", "easting": 423420.486, "northing": 2933056.467, "elevation": 128.059, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313971, 26.5159219]}, "properties": {"station": "260", "easting": 423417.722, "northing": 2933050.312, "elevation": 128.091, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314025, 26.5158572]}, "properties": {"station": "261", "easting": 423418.218, "northing": 2933043.142, "elevation": 128.08, "code": "MN", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313711, 26.5158364]}, "properties": {"station": "262", "easting": 423415.075, "northing": 2933040.853, "elevation": 128.058, "code": "MN", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313705, 26.5157537]}, "properties": {"station": "263", "easting": 423414.959, "northing": 2933031.691, "elevation": 128.025, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313245, 26.5154955]}, "properties": {"station": "264", "easting": 423410.208, "northing": 2933003.122, "elevation": 128.015, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312982, 26.5154326]}, "properties": {"station": "265", "easting": 423407.538, "northing": 2932996.171, "elevation": 128.015, "code": "SA", "label": "Survey Anchor", "color": "#009688"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312688, 26.5154716]}, "properties": {"station": "266", "easting": 423404.64, "northing": 2933000.514, "elevation": 128.099, "code": "MN", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314079, 26.5158734]}, "properties": {"station": "TBMDJAC", "easting": 423418.761, "northing": 2933044.928, "elevation": 128.098, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312217, 26.5155798]}, "properties": {"station": "TBMSIIC", "easting": 423400.016, "northing": 2933012.525, "elevation": 127.991, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316212, 26.5151921]}, "properties": {"station": "TBMWT", "easting": 423439.562, "northing": 2932969.34, "elevation": 127.84, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232258, 26.5150543]}, "properties": {"station": "CP1", "easting": 423502.925, "northing": 2932953.705, "elevation": 127.749, "code": "CP", "label": "Control Point", "color": "#FFD93D"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323217, 26.5151051]}, "properties": {"station": "267", "easting": 423509.309, "northing": 2932959.292, "elevation": 127.328, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2326665, 26.5152122]}, "properties": {"station": "268", "easting": 423543.736, "northing": 2932970.95, "elevation": 126.642, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232348, 26.51527]}, "properties": {"station": "269", "easting": 423512.042, "northing": 2932977.536, "elevation": 126.757, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323505, 26.5153011]}, "properties": {"station": "270", "easting": 423512.307, "northing": 2932980.983, "elevation": 127.004, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322269, 26.5150697]}, "properties": {"station": "271", "easting": 423499.843, "northing": 2932955.428, "elevation": 127.554, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321766, 26.5151819]}, "properties": {"station": "272", "easting": 423494.9, "northing": 2932967.884, "elevation": 126.574, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322333, 26.5151078]}, "properties": {"station": "273", "easting": 423500.498, "northing": 2932959.642, "elevation": 127.278, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322166, 26.5151755]}, "properties": {"station": "274", "easting": 423498.88, "northing": 2932967.151, "elevation": 126.734, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322356, 26.5151541]}, "properties": {"station": "275", "easting": 423500.76, "northing": 2932964.762, "elevation": 126.932, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322606, 26.515168]}, "properties": {"station": "276", "easting": 423503.262, "northing": 2932966.291, "elevation": 127.332, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232331, 26.5154395]}, "properties": {"station": "277", "easting": 423510.453, "northing": 2932996.316, "elevation": 126.726, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322572, 26.5151664]}, "properties": {"station": "278", "easting": 423502.921, "northing": 2932966.116, "elevation": 127.831, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232308, 26.5157755]}, "properties": {"station": "279", "easting": 423508.384, "northing": 2933033.549, "elevation": 128.247, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323454, 26.515401]}, "properties": {"station": "280", "easting": 423511.868, "northing": 2932992.05, "elevation": 126.509, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323435, 26.5155748]}, "properties": {"station": "281", "easting": 423511.791, "northing": 2933011.295, "elevation": 127.337, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322247, 26.5152474]}, "properties": {"station": "282", "easting": 423499.734, "northing": 2932975.107, "elevation": 127.588, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322247, 26.5153148]}, "properties": {"station": "283", "easting": 423499.783, "northing": 2932982.573, "elevation": 127.538, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320171, 26.5152026]}, "properties": {"station": "284", "easting": 423479.017, "northing": 2932970.265, "elevation": 126.662, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2319794, 26.5151341]}, "properties": {"station": "285", "easting": 423475.222, "northing": 2932962.707, "elevation": 126.782, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320362, 26.5151472]}, "properties": {"station": "286", "easting": 423480.886, "northing": 2932964.116, "elevation": 127.712, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232269, 26.5152512]}, "properties": {"station": "287", "easting": 423504.151, "northing": 2932975.498, "elevation": 127.73, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322568, 26.5151689]}, "properties": {"station": "288", "easting": 423502.886, "northing": 2932966.394, "elevation": 127.691, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323937, 26.5149789]}, "properties": {"station": "289", "easting": 423516.396, "northing": 2932945.263, "elevation": 127.466, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2333352, 26.5149829]}, "properties": {"station": "290", "easting": 423610.211, "northing": 2932945.148, "elevation": 127.525, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2324618, 26.5150399]}, "properties": {"station": "291", "easting": 423523.23, "northing": 2932951.979, "elevation": 127.776, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2324586, 26.5149925]}, "properties": {"station": "292", "easting": 423522.872, "northing": 2932946.731, "elevation": 127.791, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323687, 26.5150389]}, "properties": {"station": "293", "easting": 423513.943, "northing": 2932951.927, "elevation": 127.812, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323342, 26.5150641]}, "properties": {"station": "294", "easting": 423510.529, "northing": 2932954.739, "elevation": 127.752, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323181, 26.5150996]}, "properties": {"station": "295", "easting": 423508.948, "northing": 2932958.678, "elevation": 127.689, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323182, 26.5151469]}, "properties": {"station": "296", "easting": 423508.992, "northing": 2932963.92, "elevation": 127.611, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322163, 26.5150377]}, "properties": {"station": "297", "easting": 423498.759, "northing": 2932951.886, "elevation": 127.795, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322423, 26.5150466]}, "properties": {"station": "298", "easting": 423501.359, "northing": 2932952.859, "elevation": 127.763, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232265, 26.5150667]}, "properties": {"station": "299", "easting": 423503.632, "northing": 2932955.067, "elevation": 127.736, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322767, 26.5151131]}, "properties": {"station": "300", "easting": 423504.834, "northing": 2932960.203, "elevation": 127.664, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322756, 26.5151931]}, "properties": {"station": "301", "easting": 423504.778, "northing": 2932969.067, "elevation": 127.56, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232275, 26.5152355]}, "properties": {"station": "302", "easting": 423504.743, "northing": 2932973.759, "elevation": 127.505, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232247, 26.5152329]}, "properties": {"station": "303", "easting": 423501.954, "northing": 2932973.491, "elevation": 127.714, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232244, 26.5152076]}, "properties": {"station": "304", "easting": 423501.636, "northing": 2932970.686, "elevation": 127.689, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320327, 26.5152087]}, "properties": {"station": "305", "easting": 423480.58, "northing": 2932970.932, "elevation": 127.735, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320308, 26.5152331]}, "properties": {"station": "306", "easting": 423480.406, "northing": 2932973.642, "elevation": 127.737, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322686, 26.5152512]}, "properties": {"station": "307", "easting": 423504.116, "northing": 2932975.506, "elevation": 127.729, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322686, 26.5152512]}, "properties": {"station": "308", "easting": 423504.116, "northing": 2932975.506, "elevation": 127.729, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322561, 26.5156887]}, "properties": {"station": "309", "easting": 423503.158, "northing": 2933023.962, "elevation": 127.462, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323508, 26.5157081]}, "properties": {"station": "TBMDJACR", "easting": 423512.605, "northing": 2933026.055, "elevation": 127.529, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323508, 26.5157081]}, "properties": {"station": "TBMDJACS", "easting": 423512.606, "northing": 2933026.057, "elevation": 127.528, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323508, 26.5157081]}, "properties": {"station": "TBMDJACT", "easting": 423512.605, "northing": 2933026.057, "elevation": 127.528, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323508, 26.5157081]}, "properties": {"station": "TBMDJACU", "easting": 423512.605, "northing": 2933026.057, "elevation": 127.528, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313018, 26.5158375]}, "properties": {"station": "310", "easting": 423408.167, "northing": 2933041.014, "elevation": 127.518, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313016, 26.5159153]}, "properties": {"station": "311", "easting": 423408.198, "northing": 2933049.636, "elevation": 127.3, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313016, 26.5159153]}, "properties": {"station": "312", "easting": 423408.199, "northing": 2933049.636, "elevation": 127.3, "code": "SA", "label": "Survey Anchor", "color": "#009688"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313046, 26.5158532]}, "properties": {"station": "313", "easting": 423408.457, "northing": 2933042.749, "elevation": 127.06, "code": "SA", "label": "Survey Anchor", "color": "#009688"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314218, 26.5160234]}, "properties": {"station": "314", "easting": 423420.252, "northing": 2933061.531, "elevation": 127.218, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314285, 26.5162819]}, "properties": {"station": "315", "easting": 423421.088, "northing": 2933090.156, "elevation": 128.207, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314346, 26.5165123]}, "properties": {"station": "316", "easting": 423421.848, "northing": 2933115.68, "elevation": 128.608, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313074, 26.516]}, "properties": {"station": "317", "easting": 423408.839, "northing": 2933059.011, "elevation": 128.332, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312984, 26.5159822]}, "properties": {"station": "318", "easting": 423407.924, "northing": 2933057.048, "elevation": 127.068, "code": "SA", "label": "Survey Anchor", "color": "#009688"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312149, 26.5159037]}, "properties": {"station": "319", "easting": 423399.556, "northing": 2933048.403, "elevation": 128.234, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2311949, 26.5159]}, "properties": {"station": "320", "easting": 423397.562, "northing": 2933048.002, "elevation": 128.245, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313093, 26.5158068]}, "properties": {"station": "321", "easting": 423408.895, "northing": 2933037.609, "elevation": 127.391, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313124, 26.5157921]}, "properties": {"station": "322", "easting": 423409.192, "northing": 2933035.978, "elevation": 127.343, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231274, 26.5158171]}, "properties": {"station": "323", "easting": 423405.39, "northing": 2933038.777, "elevation": 128.689, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313411, 26.5156521]}, "properties": {"station": "324", "easting": 423411.958, "northing": 2933020.458, "elevation": 128.036, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312765, 26.5156473]}, "properties": {"station": "325", "easting": 423405.526, "northing": 2933019.97, "elevation": 127.969, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312366, 26.515469]}, "properties": {"station": "326", "easting": 423401.43, "northing": 2933000.236, "elevation": 127.812, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314287, 26.5157803]}, "properties": {"station": "327", "easting": 423420.772, "northing": 2933034.6, "elevation": 128.154, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314268, 26.515815]}, "properties": {"station": "328", "easting": 423420.608, "northing": 2933038.453, "elevation": 127.957, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314326, 26.5158605]}, "properties": {"station": "329", "easting": 423421.216, "northing": 2933043.484, "elevation": 127.984, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314379, 26.5158827]}, "properties": {"station": "330", "easting": 423421.76, "northing": 2933045.944, "elevation": 127.629, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322478, 26.515936]}, "properties": {"station": "331", "easting": 423502.5, "northing": 2933051.366, "elevation": 127.723, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317237, 26.515877]}, "properties": {"station": "332", "easting": 423450.23, "northing": 2933045.134, "elevation": 127.898, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317199, 26.5159452]}, "properties": {"station": "333", "easting": 423449.896, "northing": 2933052.694, "elevation": 127.644, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314656, 26.5161202]}, "properties": {"station": "334", "easting": 423424.674, "northing": 2933072.231, "elevation": 127.834, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314221, 26.5158523]}, "properties": {"station": "335", "easting": 423420.165, "northing": 2933042.583, "elevation": 127.086, "code": "SA", "label": "Survey Anchor", "color": "#009688"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314786, 26.5157847]}, "properties": {"station": "336", "easting": 423425.754, "northing": 2933035.062, "elevation": 127.108, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315365, 26.5157008]}, "properties": {"station": "337", "easting": 423431.46, "northing": 2933025.74, "elevation": 127.668, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314686, 26.5159827]}, "properties": {"station": "338", "easting": 423424.887, "northing": 2933056.993, "elevation": 127.749, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321911, 26.5159592]}, "properties": {"station": "339", "easting": 423496.86, "northing": 2933053.964, "elevation": 129.601, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.23187, 26.5158433]}, "properties": {"station": "340", "easting": 423464.792, "northing": 2933041.323, "elevation": 127.811, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316395, 26.5158097]}, "properties": {"station": "341", "easting": 423441.796, "northing": 2933037.737, "elevation": 127.904, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316701, 26.5157769]}, "properties": {"station": "342", "easting": 423444.823, "northing": 2933034.087, "elevation": 127.846, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231644, 26.5157618]}, "properties": {"station": "343", "easting": 423442.214, "northing": 2933032.428, "elevation": 127.925, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317067, 26.5157897]}, "properties": {"station": "344", "easting": 423448.48, "northing": 2933035.482, "elevation": 127.436, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2318129, 26.5157697]}, "properties": {"station": "345", "easting": 423459.048, "northing": 2933033.204, "elevation": 127.751, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231878, 26.5157905]}, "properties": {"station": "346", "easting": 423465.551, "northing": 2933035.463, "elevation": 127.909, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320276, 26.5157939]}, "properties": {"station": "347", "easting": 423480.458, "northing": 2933035.752, "elevation": 127.713, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313241, 26.5161809]}, "properties": {"station": "348", "easting": 423410.623, "northing": 2933079.031, "elevation": 128.31, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315123, 26.5157916]}, "properties": {"station": "349", "easting": 423429.109, "northing": 2933035.811, "elevation": 127.963, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315351, 26.5157196]}, "properties": {"station": "350", "easting": 423431.34, "northing": 2933027.821, "elevation": 127.826, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314944, 26.515681]}, "properties": {"station": "351", "easting": 423427.259, "northing": 2933023.568, "elevation": 127.984, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314875, 26.5156568]}, "properties": {"station": "352", "easting": 423426.548, "northing": 2933020.888, "elevation": 128.253, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314828, 26.5156094]}, "properties": {"station": "353", "easting": 423426.052, "northing": 2933015.648, "elevation": 128.074, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315587, 26.5156589]}, "properties": {"station": "354", "easting": 423433.646, "northing": 2933021.085, "elevation": 127.933, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231195, 26.5161897]}, "properties": {"station": "355", "easting": 423397.759, "northing": 2933080.087, "elevation": 129.341, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312903, 26.5161363]}, "properties": {"station": "356", "easting": 423407.223, "northing": 2933074.118, "elevation": 132.868, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313311, 26.5160663]}, "properties": {"station": "357", "easting": 423411.236, "northing": 2933066.335, "elevation": 131.521, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313694, 26.516669]}, "properties": {"station": "358", "easting": 423415.461, "northing": 2933133.074, "elevation": 126.67, "code": "PV", "label": "Pavement", "color": "#FF9800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314074, 26.515811]}, "properties": {"station": "359", "easting": 423418.675, "northing": 2933038.022, "elevation": 128.092, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314063, 26.5158553]}, "properties": {"station": "360", "easting": 423418.598, "northing": 2933042.93, "elevation": 128.099, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314152, 26.5158833]}, "properties": {"station": "361", "easting": 423419.5, "northing": 2933046.026, "elevation": 128.095, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314402, 26.5158885]}, "properties": {"station": "362", "easting": 423421.989, "northing": 2933046.585, "elevation": 128.118, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314114, 26.5160085]}, "properties": {"station": "363", "easting": 423419.2, "northing": 2933059.894, "elevation": 128.069, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314133, 26.5159802]}, "properties": {"station": "364", "easting": 423419.373, "northing": 2933056.759, "elevation": 128.063, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314307, 26.5159546]}, "properties": {"station": "365", "easting": 423421.087, "northing": 2933053.912, "elevation": 128.054, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314609, 26.515942]}, "properties": {"station": "366", "easting": 423424.095, "northing": 2933052.492, "elevation": 128.06, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317849, 26.5159363]}, "properties": {"station": "367", "easting": 423456.373, "northing": 2933051.673, "elevation": 128.047, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2317745, 26.5158812]}, "properties": {"station": "368", "easting": 423455.295, "northing": 2933045.576, "elevation": 128.103, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322492, 26.5159284]}, "properties": {"station": "369", "easting": 423502.626, "northing": 2933050.515, "elevation": 128.121, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322438, 26.5158793]}, "properties": {"station": "370", "easting": 423502.06, "northing": 2933045.082, "elevation": 128.386, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315734, 26.515843]}, "properties": {"station": "371", "easting": 423435.235, "northing": 2933041.466, "elevation": 128.063, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316138, 26.5158436]}, "properties": {"station": "372", "easting": 423439.261, "northing": 2933041.506, "elevation": 128.06, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316182, 26.5156431]}, "properties": {"station": "373", "easting": 423439.566, "northing": 2933019.295, "elevation": 127.894, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315792, 26.5156596]}, "properties": {"station": "374", "easting": 423435.696, "northing": 2933021.146, "elevation": 127.855, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313595, 26.5156751]}, "properties": {"station": "375", "easting": 423413.807, "northing": 2933022.989, "elevation": 128.02, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313401, 26.515685]}, "properties": {"station": "376", "easting": 423411.885, "northing": 2933024.097, "elevation": 128.012, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312037, 26.5156198]}, "properties": {"station": "377", "easting": 423398.247, "northing": 2933016.962, "elevation": 128.024, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312154, 26.5156067]}, "properties": {"station": "378", "easting": 423399.407, "northing": 2933015.509, "elevation": 128.033, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.23119, 26.515571]}, "properties": {"station": "379", "easting": 423396.854, "northing": 2933011.569, "elevation": 127.974, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312894, 26.5156235]}, "properties": {"station": "380", "easting": 423406.796, "northing": 2933017.325, "elevation": 128.033, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312697, 26.5156055]}, "properties": {"station": "381", "easting": 423404.813, "northing": 2933015.337, "elevation": 128.038, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2310753, 26.5154298]}, "properties": {"station": "382", "easting": 423385.329, "northing": 2932995.998, "elevation": 128.091, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231148, 26.5154682]}, "properties": {"station": "383", "easting": 423392.594, "northing": 2933000.21, "elevation": 127.949, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2311355, 26.5155108]}, "properties": {"station": "384", "easting": 423391.381, "northing": 2933004.927, "elevation": 127.978, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2311011, 26.5155259]}, "properties": {"station": "385", "easting": 423387.965, "northing": 2933006.628, "elevation": 127.975, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2312244, 26.5153485]}, "properties": {"station": "386", "easting": 423400.132, "northing": 2932986.898, "elevation": 127.925, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2313581, 26.5152934]}, "properties": {"station": "387", "easting": 423413.414, "northing": 2932980.72, "elevation": 128.022, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321956, 26.5157854]}, "properties": {"station": "388", "easting": 423497.197, "northing": 2933034.707, "elevation": 127.14, "code": "CP", "label": "Control Point", "color": "#FFD93D"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323068, 26.5157963]}, "properties": {"station": "389", "easting": 423508.281, "northing": 2933035.854, "elevation": 126.722, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322641, 26.5157884]}, "properties": {"station": "390", "easting": 423504.022, "northing": 2933035.0, "elevation": 126.594, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321957, 26.5157852]}, "properties": {"station": "391", "easting": 423497.201, "northing": 2933034.689, "elevation": 127.63, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2321965, 26.515555]}, "properties": {"station": "392", "easting": 423497.13, "northing": 2933009.195, "elevation": 128.089, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323458, 26.5156404]}, "properties": {"station": "393", "easting": 423512.06, "northing": 2933018.564, "elevation": 127.478, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323603, 26.5157331]}, "properties": {"station": "394", "easting": 423513.57, "northing": 2933028.826, "elevation": 127.534, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323013, 26.5158498]}, "properties": {"station": "395", "easting": 423507.768, "northing": 2933041.784, "elevation": 127.501, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322939, 26.5158587]}, "properties": {"station": "396", "easting": 423507.039, "northing": 2933042.767, "elevation": 127.694, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322717, 26.5158615]}, "properties": {"station": "397", "easting": 423504.823, "northing": 2933043.096, "elevation": 127.975, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322737, 26.5159132]}, "properties": {"station": "398", "easting": 423505.065, "northing": 2933048.823, "elevation": 127.974, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323098, 26.5159125]}, "properties": {"station": "399", "easting": 423508.659, "northing": 2933048.718, "elevation": 127.509, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322448, 26.5158573]}, "properties": {"station": "400", "easting": 423502.143, "northing": 2933042.642, "elevation": 128.195, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322887, 26.5158255]}, "properties": {"station": "401", "easting": 423506.5, "northing": 2933039.103, "elevation": 127.39, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322887, 26.5158255]}, "properties": {"station": "402", "easting": 423506.5, "northing": 2933039.103, "elevation": 127.39, "code": "DR", "label": "Drain", "color": "#8BC34A"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322887, 26.5158256]}, "properties": {"station": "403", "easting": 423506.5, "northing": 2933039.104, "elevation": 127.39, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323087, 26.5158225]}, "properties": {"station": "404", "easting": 423508.488, "northing": 2933038.758, "elevation": 127.53, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323159, 26.5158076]}, "properties": {"station": "405", "easting": 423509.197, "northing": 2933037.102, "elevation": 127.531, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323157, 26.5156985]}, "properties": {"station": "406", "easting": 423509.108, "northing": 2933025.013, "elevation": 127.516, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323055, 26.5156819]}, "properties": {"station": "407", "easting": 423508.074, "northing": 2933023.181, "elevation": 127.495, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322849, 26.5156756]}, "properties": {"station": "408", "easting": 423506.023, "northing": 2933022.494, "elevation": 127.496, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322642, 26.5156837]}, "properties": {"station": "409", "easting": 423503.962, "northing": 2933023.403, "elevation": 127.471, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322547, 26.5157032]}, "properties": {"station": "410", "easting": 423503.03, "northing": 2933025.572, "elevation": 127.458, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322543, 26.5158102]}, "properties": {"station": "411", "easting": 423503.061, "northing": 2933037.424, "elevation": 127.511, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322652, 26.5158258]}, "properties": {"station": "412", "easting": 423504.157, "northing": 2933039.147, "elevation": 127.506, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322723, 26.5159907]}, "properties": {"station": "413", "easting": 423504.97, "northing": 2933057.403, "elevation": 128.565, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320465, 26.5153876]}, "properties": {"station": "414", "easting": 423482.074, "northing": 2932990.738, "elevation": 130.56, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.23221, 26.5159567]}, "properties": {"station": "415", "easting": 423498.744, "northing": 2933053.672, "elevation": 128.025, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2322261, 26.5162747]}, "properties": {"station": "416", "easting": 423500.561, "northing": 2933088.888, "elevation": 127.912, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315885, 26.5152588]}, "properties": {"station": "417", "easting": 423436.354, "northing": 2932976.754, "elevation": 127.083, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315619, 26.515514]}, "properties": {"station": "418", "easting": 423433.876, "northing": 2933005.031, "elevation": 127.394, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315823, 26.5154999]}, "properties": {"station": "419", "easting": 423435.892, "northing": 2933003.455, "elevation": 127.853, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231615, 26.515499]}, "properties": {"station": "420", "easting": 423439.151, "northing": 2933003.334, "elevation": 127.857, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231628, 26.5152293]}, "properties": {"station": "421", "easting": 423440.27, "northing": 2932973.454, "elevation": 128.04, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2315911, 26.5151902]}, "properties": {"station": "422", "easting": 423436.566, "northing": 2932969.144, "elevation": 127.863, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2316399, 26.5152152]}, "properties": {"station": "423", "easting": 423441.45, "northing": 2932971.885, "elevation": 127.79, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2320126, 26.5152105]}, "properties": {"station": "424", "easting": 423478.582, "northing": 2932971.15, "elevation": 127.801, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307719, 26.515098]}, "properties": {"station": "425", "easting": 423354.875, "northing": 2932959.426, "elevation": 127.403, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2309602, 26.5152043]}, "properties": {"station": "426", "easting": 423373.71, "northing": 2932971.084, "elevation": 127.823, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308211, 26.5151878]}, "properties": {"station": "427", "easting": 423359.835, "northing": 2932969.342, "elevation": 128.23, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306203, 26.5153118]}, "properties": {"station": "428", "easting": 423339.916, "northing": 2932983.196, "elevation": 127.319, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305811, 26.5153035]}, "properties": {"station": "429", "easting": 423336.0, "northing": 2932982.299, "elevation": 127.316, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305666, 26.5152615]}, "properties": {"station": "430", "easting": 423334.528, "northing": 2932977.659, "elevation": 127.405, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305502, 26.5152445]}, "properties": {"station": "431", "easting": 423332.887, "northing": 2932975.781, "elevation": 127.426, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305127, 26.5155399]}, "properties": {"station": "432", "easting": 423329.347, "northing": 2933008.527, "elevation": 128.014, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305106, 26.5157742]}, "properties": {"station": "433", "easting": 423329.295, "northing": 2933034.472, "elevation": 128.055, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305096, 26.5157674]}, "properties": {"station": "434", "easting": 423329.187, "northing": 2933033.727, "elevation": 127.854, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.23066, 26.5152376]}, "properties": {"station": "435", "easting": 423343.825, "northing": 2932974.959, "elevation": 128.181, "code": "FL", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307607, 26.5154113]}, "properties": {"station": "436", "easting": 423353.965, "northing": 2932994.132, "elevation": 127.368, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307566, 26.515554]}, "properties": {"station": "437", "easting": 423353.652, "northing": 2933009.943, "elevation": 127.123, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307547, 26.5158838]}, "properties": {"station": "438", "easting": 423353.684, "northing": 2933046.467, "elevation": 127.706, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307644, 26.5151461]}, "properties": {"station": "439", "easting": 423354.162, "northing": 2932964.755, "elevation": 128.03, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308251, 26.515211]}, "properties": {"station": "440", "easting": 423360.256, "northing": 2932971.912, "elevation": 128.209, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307857, 26.5152522]}, "properties": {"station": "441", "easting": 423356.355, "northing": 2932976.496, "elevation": 128.12, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308453, 26.5153597]}, "properties": {"station": "442", "easting": 423362.361, "northing": 2932988.368, "elevation": 128.062, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308849, 26.5153198]}, "properties": {"station": "443", "easting": 423366.289, "northing": 2932983.92, "elevation": 128.012, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308126, 26.5153851]}, "properties": {"station": "444", "easting": 423359.122, "northing": 2932991.2, "elevation": 128.065, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307384, 26.5153934]}, "properties": {"station": "445", "easting": 423351.732, "northing": 2932992.16, "elevation": 128.008, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230604, 26.5152463]}, "properties": {"station": "446", "easting": 423338.242, "northing": 2932975.949, "elevation": 128.052, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306129, 26.5153148]}, "properties": {"station": "447", "easting": 423339.175, "northing": 2932983.533, "elevation": 128.045, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305902, 26.5153975]}, "properties": {"station": "448", "easting": 423336.973, "northing": 2932992.708, "elevation": 128.066, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305557, 26.5153838]}, "properties": {"station": "449", "easting": 423333.526, "northing": 2932991.212, "elevation": 128.108, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305436, 26.5153278]}, "properties": {"station": "450", "easting": 423332.284, "northing": 2932985.011, "elevation": 128.086, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305418, 26.5154286]}, "properties": {"station": "451", "easting": 423332.173, "northing": 2932996.185, "elevation": 128.098, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306687, 26.5154298]}, "properties": {"station": "TBMNCG1", "easting": 423344.811, "northing": 2932996.242, "elevation": 128.059, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306668, 26.5158566]}, "properties": {"station": "TBMNCG2", "easting": 423344.908, "northing": 2933043.511, "elevation": 127.963, "code": "TBM", "label": "Temporary Benchmark", "color": "#E91E63"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2304441, 26.5151179]}, "properties": {"station": "452", "easting": 423322.232, "northing": 2932961.825, "elevation": 129.153, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2301622, 26.5155374]}, "properties": {"station": "453", "easting": 423294.422, "northing": 2933008.456, "elevation": 131.053, "code": "CP", "label": "Control Point", "color": "#FFD93D"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305047, 26.515536]}, "properties": {"station": "454", "easting": 423328.544, "northing": 2933008.095, "elevation": 127.594, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306568, 26.5154368]}, "properties": {"station": "455", "easting": 423343.631, "northing": 2932997.019, "elevation": 128.016, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230641, 26.5154425]}, "properties": {"station": "456", "easting": 423342.059, "northing": 2932997.657, "elevation": 128.012, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306721, 26.5154899]}, "properties": {"station": "457", "easting": 423345.197, "northing": 2933002.888, "elevation": 128.041, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306603, 26.5154731]}, "properties": {"station": "458", "easting": 423344.004, "northing": 2933001.039, "elevation": 128.015, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306479, 26.5154672]}, "properties": {"station": "459", "easting": 423342.767, "northing": 2933000.396, "elevation": 128.018, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2301516, 26.5154735]}, "properties": {"station": "460", "easting": 423293.317, "northing": 2933001.388, "elevation": 128.068, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2301503, 26.5154432]}, "properties": {"station": "461", "easting": 423293.174, "northing": 2932998.036, "elevation": 128.076, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305434, 26.5154628]}, "properties": {"station": "462", "easting": 423332.35, "northing": 2932999.972, "elevation": 128.121, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305741, 26.5154625]}, "properties": {"station": "463", "easting": 423335.41, "northing": 2932999.912, "elevation": 128.137, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306523, 26.5154868]}, "properties": {"station": "464", "easting": 423343.218, "northing": 2933002.565, "elevation": 128.079, "code": "PS", "label": "Parking Space", "color": "#3F51B5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306011, 26.5154857]}, "properties": {"station": "465", "easting": 423338.116, "northing": 2933002.468, "elevation": 128.106, "code": "PS", "label": "Parking Space", "color": "#3F51B5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305052, 26.5157699]}, "properties": {"station": "466", "easting": 423328.752, "northing": 2933034.006, "elevation": 128.259, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2303425, 26.5157746]}, "properties": {"station": "467", "easting": 423312.54, "northing": 2933034.622, "elevation": 128.147, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306048, 26.5158672]}, "properties": {"station": "468", "easting": 423338.74, "northing": 2933044.723, "elevation": 127.65, "code": "T", "label": "Tree", "color": "#228B22"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2303372, 26.5158629]}, "properties": {"station": "469", "easting": 423312.072, "northing": 2933044.4, "elevation": 127.937, "code": "SL", "label": "Street Light", "color": "#6BCB77"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305004, 26.5157787]}, "properties": {"station": "470", "easting": 423328.281, "northing": 2933034.977, "elevation": 127.737, "code": "FH", "label": "Fire Hydrant", "color": "#FF4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2301573, 26.5158547]}, "properties": {"station": "471", "easting": 423294.136, "northing": 2933043.605, "elevation": 128.031, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2301668, 26.5158135]}, "properties": {"station": "472", "easting": 423295.062, "northing": 2933039.038, "elevation": 128.025, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230407, 26.5157846]}, "properties": {"station": "473", "easting": 423318.975, "northing": 2933035.692, "elevation": 128.062, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2304039, 26.5157972]}, "properties": {"station": "474", "easting": 423318.669, "northing": 2933037.091, "elevation": 128.017, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305338, 26.5157932]}, "properties": {"station": "475", "easting": 423331.614, "northing": 2933036.567, "elevation": 128.01, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305439, 26.5157827]}, "properties": {"station": "476", "easting": 423332.614, "northing": 2933035.394, "elevation": 128.091, "code": "MH", "label": "Manhole", "color": "#9B59B6"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2305968, 26.5158067]}, "properties": {"station": "477", "easting": 423337.905, "northing": 2933038.024, "elevation": 128.061, "code": "PS", "label": "Parking Space", "color": "#3F51B5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306323, 26.5158062]}, "properties": {"station": "478", "easting": 423341.435, "northing": 2933037.944, "elevation": 127.999, "code": "PS", "label": "Parking Space", "color": "#3F51B5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306561, 26.515794]}, "properties": {"station": "479", "easting": 423343.806, "northing": 2933036.584, "elevation": 127.937, "code": "PS", "label": "Parking Space", "color": "#3F51B5"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306682, 26.5157812]}, "properties": {"station": "480", "easting": 423344.997, "northing": 2933035.158, "elevation": 127.987, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306498, 26.515861]}, "properties": {"station": "481", "easting": 423343.219, "northing": 2933044.008, "elevation": 128.04, "code": "RD", "label": "Road", "color": "#78909C"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308479, 26.5157314]}, "properties": {"station": "482", "easting": 423362.87, "northing": 2933029.539, "elevation": 126.912, "code": "BC", "label": "Building Corner", "color": "#FF6B6B"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230816, 26.5157365]}, "properties": {"station": "483", "easting": 423359.699, "northing": 2933030.118, "elevation": 128.137, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307544, 26.5157445]}, "properties": {"station": "484", "easting": 423353.563, "northing": 2933031.037, "elevation": 128.052, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2308327, 26.5158683]}, "properties": {"station": "485", "easting": 423361.447, "northing": 2933044.708, "elevation": 128.108, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307811, 26.5159114]}, "properties": {"station": "486", "easting": 423356.335, "northing": 2933049.506, "elevation": 128.054, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2307632, 26.5159875]}, "properties": {"station": "487", "easting": 423354.599, "northing": 2933057.955, "elevation": 128.045, "code": "SH", "label": "Spot Height", "color": "#00BCD4"}}]};
+const GNSS_DATA = {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.232258, 26.5150543]}, "properties": {"id": "1", "easting": 423502.925, "northing": 2932953.705, "elevation": 65.687, "code": "CP", "label": "GNSS Control Point"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.231462, 26.5169857]}, "properties": {"id": "5", "easting": 423424.892, "northing": 2933168.095, "elevation": 65.786, "code": "CP", "label": "GNSS Control Point"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.230711, 26.5168616]}, "properties": {"id": "6", "easting": 423349.983, "northing": 2933154.792, "elevation": 65.752, "code": "CP", "label": "GNSS Control Point"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2306741, 26.515069]}, "properties": {"id": "8", "easting": 423345.113, "northing": 2932956.276, "elevation": 65.854, "code": "CE", "label": "GNSS Control Point"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2314249, 26.5149793]}, "properties": {"id": "10", "easting": 423419.87, "northing": 2932945.891, "elevation": 65.866, "code": "CP", "label": "GNSS Control Point"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [80.2323423, 26.5168668]}, "properties": {"id": "11", "easting": 423512.53, "northing": 2933154.401, "elevation": 65.99, "code": "CP", "label": "GNSS Control Point"}}]};
+
+const LEGEND_INFO = {
+  'Building Corner':   { color:'#FF6B6B', icon:'business' },
+  'Control Point':     { color:'#FFD93D', icon:'gps_fixed' },
+  'Street Light':      { color:'#6BCB77', icon:'light' },
+  'Tree':              { color:'#228B22', icon:'park' },
+  'Fire Hydrant':      { color:'#FF4500', icon:'local_fire_department' },
+  'Manhole':           { color:'#9B59B6', icon:'circle' },
+  'Spot Height':       { color:'#00BCD4', icon:'height' },
+  'Road':              { color:'#78909C', icon:'road' },
+  'Pavement':          { color:'#FF9800', icon:'square_foot' },
+  'Parking Space':     { color:'#3F51B5', icon:'local_parking' },
+  'Seating Bench':     { color:'#795548', icon:'chair' },
+  'Temporary Benchmark':{ color:'#E91E63', icon:'push_pin' },
+  'Survey Anchor':     { color:'#009688', icon:'anchor' },
+  'Drain':             { color:'#8BC34A', icon:'water' },
+  'GNSS Control Point':{ color:'#FF9800', icon:'satellite_alt' },
+};
+
+// ── BASEMAPS ──
+const TILES = {
+  roadmap:   L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{subdomains:'0123',maxZoom:21,attribution:'© Google Maps'}),
+  satellite: L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{subdomains:'0123',maxZoom:21,attribution:'© Google Satellite'}),
+  hybrid:    L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{subdomains:'0123',maxZoom:21,attribution:'© Google Hybrid'}),
+  terrain:   L.tileLayer('https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',{subdomains:'0123',maxZoom:21,attribution:'© Google Terrain'}),
+};
+
+// ── MAP INIT ──
+const map = L.map('map', {
+  center: [26.5160, 80.2316],
+  zoom: 17,
+  zoomControl: false,
+  attributionControl: true,
+});
+TILES.roadmap.addTo(map);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
+let currentBasemap = 'roadmap';
+
+// ── DARK TILE LAYER ──
+let darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'© CartoDB Dark',maxZoom:21,subdomains:'abcd'
+});
+
+// ── CLUSTER GROUP ──
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 40,
+  showCoverageOnHover: false,
+  iconCreateFunction: function(cluster){
+    const n = cluster.getChildCount();
+    const sz = n > 100 ? 40 : n > 50 ? 34 : 28;
+    return L.divIcon({
+      html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:rgba(26,115,232,0.85);color:#fff;display:flex;align-items:center;justify-content:center;font-size:${sz<34?11:13}px;font-weight:700;font-family:'Google Sans',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.25);border:2px solid rgba(255,255,255,.5);">${n}</div>`,
+      className: '', iconSize: [sz,sz], iconAnchor:[sz/2,sz/2]
+    });
+  }
+});
+
+// ── INDIVIDUAL LAYER (no cluster) ──
+const individualGroup = L.layerGroup();
+
+// ── GNSS LAYER ──
+const gnssGroup = L.layerGroup();
+
+// ── FEATURE COUNTS ──
+const featureCounts = {};
+TS_DATA.features.forEach(f => {
+  const lbl = f.properties.label;
+  featureCounts[lbl] = (featureCounts[lbl]||0)+1;
+});
+
+// ── MAKE MARKER ──
+function makeIcon(color, size=10) {
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.8);box-shadow:0 1px 4px rgba(0,0,0,.4);"></div>`,
+    className:'',iconSize:[size,size],iconAnchor:[size/2,size/2]
+  });
+}
+function makeGNSSIcon() {
+  return L.divIcon({
+    html:`<div style="width:18px;height:18px;border-radius:50%;background:#FF9800;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;">
+      <div style="width:5px;height:5px;border-radius:50%;background:#fff;"></div></div>`,
+    className:'',iconSize:[18,18],iconAnchor:[9,9]
+  });
+}
+
+// ── POPUP BUILDER ──
+function buildPopup(p, isGnss) {
+  const info = LEGEND_INFO[p.label]||{color:'#777',icon:'place'};
+  return `<div class="popup-header">
+    <div class="popup-icon" style="background:${info.color};">
+      <span class="material-icons-round">${info.icon}</span>
+    </div>
+    <div>
+      <div class="popup-label">${p.label||p.code}</div>
+      <div class="popup-station">Station: ${p.station||p.id||'—'}</div>
+    </div>
+  </div>
+  <div class="popup-body">
+    <div class="popup-row"><span>Easting (E)</span><strong>${p.easting} m</strong></div>
+    <div class="popup-row"><span>Northing (N)</span><strong>${p.northing} m</strong></div>
+    <div class="popup-row"><span>Elevation (Z)</span><strong>${p.elevation} m</strong></div>
+    <div class="popup-row"><span>Code</span><strong>${p.code}</strong></div>
+    ${isGnss?'<span class="popup-chip">GNSS Static</span>':''}
+    <div style="margin-top:8px;">
+      <button onclick="openStreetView(${p.northing},${p.easting})" style="
+        display:flex;align-items:center;gap:4px;background:var(--accent);color:#fff;
+        border:none;border-radius:16px;padding:5px 12px;font-size:11.5px;
+        cursor:pointer;font-family:'Google Sans',sans-serif;font-weight:500;">
+        <span class="material-icons-round" style="font-size:14px;">streetview</span> Street View
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── ACTIVE FILTERS ──
+let activeFilters = new Set();
+let allLabels = new Set();
+TS_DATA.features.forEach(f => allLabels.add(f.properties.label));
+allLabels.forEach(l => activeFilters.add(l));
+activeFilters.add('GNSS Control Point');
+
+// ── LOAD MARKERS ──
+let allTsMarkers = [];
+TS_DATA.features.forEach(f => {
+  const p = f.properties;
+  const [lon,lat] = f.geometry.coordinates;
+  const m = L.marker([lat,lon], {icon: makeIcon(p.color)})
+    .bindPopup(buildPopup(p,false),{maxWidth:280,className:'custom-popup'});
+  m._featureLabel = p.label;
+  allTsMarkers.push(m);
+  clusterGroup.addLayer(m);
+  individualGroup.addLayer(m);
+});
+
+GNSS_DATA.features.forEach(f => {
+  const p = f.properties;
+  const [lon,lat] = f.geometry.coordinates;
+  L.marker([lat,lon], {icon:makeGNSSIcon()})
+   .bindPopup(buildPopup(p,true),{maxWidth:280})
+   .addTo(gnssGroup);
+});
+
+// ── ADD TO MAP ──
+clusterGroup.addTo(map);
+gnssGroup.addTo(map);
+
+// ── LOADING DONE ──
+setTimeout(()=>document.getElementById('loading').style.display='none',800);
+
+// ── LAYER TOGGLES ──
+let tsVisible=true, gnssVisible=true, clusterOn=true;
+document.getElementById('lyr-ts').addEventListener('change',function(){
+  tsVisible = this.checked;
+  rebuildLayers();
+});
+document.getElementById('lyr-gnss').addEventListener('change',function(){
+  gnssVisible = this.checked;
+  if(gnssVisible) gnssGroup.addTo(map);
+  else map.removeLayer(gnssGroup);
+});
+document.getElementById('lyr-cluster').addEventListener('change',function(){
+  clusterOn = this.checked;
+  rebuildLayers();
+});
+
+function rebuildLayers() {
+  map.removeLayer(clusterGroup);
+  map.removeLayer(individualGroup);
+  clusterGroup.clearLayers();
+  individualGroup.clearLayers();
+  let count = 0;
+  allTsMarkers.forEach(m => {
+    if(tsVisible && activeFilters.has(m._featureLabel)) {
+      if(clusterOn) clusterGroup.addLayer(m);
+      else individualGroup.addLayer(m);
+      count++;
+    }
+  });
+  if(clusterOn) clusterGroup.addTo(map);
+  else individualGroup.addTo(map);
+  document.getElementById('feat-num').textContent = count;
+}
+
+// ── BASEMAP SWITCHER ──
+function setBasemap(name, btn) {
+  document.querySelectorAll('.basemap-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  map.removeLayer(TILES[currentBasemap]);
+  currentBasemap = name;
+  TILES[name].addTo(map);
+  TILES[name].bringToBack();
+}
+
+// ── THEME TOGGLE ──
+let darkMode = false;
+document.getElementById('theme-toggle').addEventListener('click', function(){
+  darkMode = !darkMode;
+  document.documentElement.setAttribute('data-theme', darkMode?'dark':'');
+  this.querySelector('.material-icons-round').textContent = darkMode ? 'light_mode' : 'dark_mode';
+  if(darkMode) {
+    map.removeLayer(TILES[currentBasemap]);
+    darkTileLayer.addTo(map);
+    darkTileLayer.bringToBack();
+  } else {
+    map.removeLayer(darkTileLayer);
+    TILES[currentBasemap].addTo(map);
+    TILES[currentBasemap].bringToBack();
+  }
+});
+
+// ── SIDEBAR TOGGLE ──
+let sidebarOpen = true;
+function toggleSidebar(){
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+  map.invalidateSize();
+}
+
+// ── COORD BAR ──
+map.on('mousemove', function(e){
+  document.getElementById('coord-bar').innerHTML =
+    `Lat: ${e.latlng.lat.toFixed(6)} &nbsp;|&nbsp; Lng: ${e.latlng.lng.toFixed(6)}`;
+});
+
+// ── STREET VIEW ──
+function openStreetView(n, e) {
+  const ll = map.getCenter();
+  const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${ll.lat},${ll.lng}`;
+  window.open(url,'_blank');
+}
+// Ctrl+Click to open Street View
+map.on('click', function(e){
+  if(e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
+    const url = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${e.latlng.lat},${e.latlng.lng}`;
+    window.open(url,'_blank');
+  }
+});
+
+// ── SEARCH ──
+document.getElementById('search-input').addEventListener('input', function(){
+  const q = this.value.trim().toLowerCase();
+  if(!q) { rebuildLayers(); return; }
+  map.removeLayer(clusterGroup);
+  map.removeLayer(individualGroup);
+  clusterGroup.clearLayers();
+  individualGroup.clearLayers();
+  let found=0;
+  allTsMarkers.forEach(m => {
+    const p = TS_DATA.features.find(f=>f.properties.station===m._popup._content?.match(/Station: ([^<]+)/)?.[1]);
+    // simpler: check all features
+  });
+  // Direct filter
+  let count=0;
+  TS_DATA.features.forEach((f,i)=>{
+    const p = f.properties;
+    if(p.station.toLowerCase().includes(q)||p.label.toLowerCase().includes(q)||p.code.toLowerCase().includes(q)){
+      if(clusterOn) clusterGroup.addLayer(allTsMarkers[i]);
+      else individualGroup.addLayer(allTsMarkers[i]);
+      count++;
+    }
+  });
+  if(clusterOn) clusterGroup.addTo(map);
+  else individualGroup.addTo(map);
+  document.getElementById('feat-num').textContent = count;
+});
+function clearSearch(){
+  document.getElementById('search-input').value='';
+  rebuildLayers();
+}
+
+// ── FILTER LIST ──
+const filterContainer = document.getElementById('filter-list');
+[...allLabels].sort().forEach(label=>{
+  const info = LEGEND_INFO[label]||{color:'#777'};
+  const cnt = featureCounts[label]||0;
+  const div = document.createElement('div');
+  div.className='layer-item';
+  div.innerHTML=`
+    <div class="toggle-wrap">
+      <label class="toggle">
+        <input type="checkbox" checked data-filter="${label}"/>
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <div style="width:10px;height:10px;border-radius:50%;background:${info.color};flex-shrink:0;border:1.5px solid rgba(255,255,255,.5);box-shadow:0 0 0 1px rgba(0,0,0,.15);"></div>
+    <label style="cursor:pointer;font-size:13px;flex:1;color:var(--text-primary);">${label}</label>
+    <span class="badge">${cnt}</span>`;
+  div.querySelector('input').addEventListener('change',function(){
+    if(this.checked) activeFilters.add(label);
+    else activeFilters.delete(label);
+    rebuildLayers();
+  });
+  filterContainer.appendChild(div);
+});
+
+// ── LEGEND ──
+const legendList = document.getElementById('legend-list');
+const orderedLabels = [...allLabels].sort((a,b)=>(featureCounts[b]||0)-(featureCounts[a]||0));
+orderedLabels.forEach(label=>{
+  const info = LEGEND_INFO[label]||{color:'#777'};
+  const cnt = featureCounts[label]||0;
+  const div = document.createElement('div');
+  div.className='legend-item';
+  div.innerHTML=`
+    <div class="legend-dot" style="background:${info.color};"></div>
+    <span>${label}</span>
+    <span class="legend-count">${cnt}</span>`;
+  div.onclick=()=>{
+    const ftr = div.closest('.section-card')?.nextElementSibling;
+    map.setView([26.5160,80.2316],17);
+  };
+  legendList.appendChild(div);
+});
+// GNSS entry
+const gnssDiv = document.createElement('div');
+gnssDiv.className='legend-item';
+gnssDiv.innerHTML=`<div class="legend-dot" style="background:#FF9800;border:2px solid #fff;"></div><span>GNSS Control Point</span><span class="legend-count">6</span>`;
+legendList.appendChild(gnssDiv);
+
+// ── FIT BOUNDS ──
+map.fitBounds([[26.5149,80.2302],[26.5176,80.2334]],{padding:[20,20]});
+</script>
+</body>
+</html>
