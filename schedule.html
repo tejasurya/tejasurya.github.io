@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TEJA // GEO-AI RESEARCH OPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #050a0f;
+  --bg1:      #070e16;
+  --bg2:      #0b1520;
+  --bg3:      #101e2e;
+  --border:   #1a3048;
+  --border2:  #1f3d5c;
+  --text:     #c8dff0;
+  --muted:    #4a7a9b;
+  --faint:    #1e3a52;
+  --cyan:     #00e5ff;
+  --cyan2:    #00b4cc;
+  --green:    #39ff85;
+  --amber:    #ffb300;
+  --coral:    #ff6b6b;
+  --purple:   #b388ff;
+  --topo:     rgba(0,229,255,0.04);
+  --r:        8px;
+  --rsm:      5px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Topographic grid background */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* Topo contour rings */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px; right: -200px;
+  width: 900px; height: 900px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,0.04),
+    0 0 0 60px rgba(0,229,255,0.025),
+    0 0 0 120px rgba(0,229,255,0.018),
+    0 0 0 200px rgba(0,229,255,0.012),
+    0 0 0 300px rgba(0,229,255,0.008),
+    0 0 0 420px rgba(0,229,255,0.005);
+  pointer-events: none; z-index: 0;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+  position: relative; z-index: 1;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: linear-gradient(180deg, var(--bg1) 0%, var(--bg) 100%);
+  border-right: 1px solid var(--border);
+  padding: 24px 20px;
+  position: sticky; top: 0;
+  height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+/* Scanline effect on sidebar */
+.sidebar::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,229,255,0.012) 2px,
+    rgba(0,229,255,0.012) 4px
+  );
+  pointer-events: none;
+}
+
+.logo-block { position: relative; }
+.logo-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--cyan);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+.logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-shadow: 0 0 20px rgba(0,229,255,0.4);
+}
+.logo-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+  letter-spacing: 0.12em;
+}
+
+/* Coordinates display */
+.coords {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--rsm);
+  padding: 10px 12px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.coords-val { color: var(--cyan2); }
+
+/* Progress ring */
+.progress-section { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.ring-wrap { position: relative; width: 110px; height: 110px; }
+.ring-wrap svg { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+.ring-fg {
+  fill: none; stroke: var(--cyan); stroke-width: 6; stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(0,229,255,0.6));
+  transition: stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1);
+}
+.ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-pct { font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 600; color: var(--cyan); text-shadow: 0 0 12px rgba(0,229,255,0.5); }
+.ring-label { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 1px; }
+
+/* Cat breakdown */
+.cat-breakdown { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+.cat-row { display: flex; align-items: center; gap: 8px; }
+.cat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 4px currentColor; }
+.cat-name { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--muted); flex: 1; letter-spacing: 0.06em; text-transform: uppercase; }
+.cat-bar-wrap { width: 52px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.cat-bar { height: 3px; border-radius: 2px; transition: width 0.5s ease; }
+.cat-count { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--muted); min-width: 24px; text-align: right; }
+
+/* Day nav */
+.nav-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; color: var(--muted);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.nav-label::before { content: '//'; color: var(--cyan); opacity: 0.6; }
+
+.day-btn {
+  width: 100%; padding: 8px 10px; border-radius: var(--rsm);
+  border: 1px solid transparent; background: transparent;
+  color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px;
+  cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+  transition: all 0.15s; text-align: left; letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.day-btn:hover { background: var(--bg2); color: var(--text); border-color: var(--border); }
+.day-btn.active {
+  background: rgba(0,229,255,0.06);
+  color: var(--cyan);
+  border-color: rgba(0,229,255,0.3);
+  box-shadow: inset 0 0 12px rgba(0,229,255,0.05);
+}
+.day-btn .dbadge {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  color: var(--faint); padding: 2px 6px;
+  background: var(--bg3); border-radius: 3px;
+  transition: all 0.15s;
+}
+.day-btn.active .dbadge { color: var(--cyan); background: rgba(0,229,255,0.1); }
+
+.reset-btn {
+  margin-top: auto; padding: 9px 12px; border-radius: var(--rsm);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--muted); font-family: 'Space Mono', monospace; font-size: 9px;
+  cursor: pointer; transition: all 0.2s; width: 100%;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.reset-btn:hover { border-color: var(--coral); color: var(--coral); box-shadow: 0 0 12px rgba(255,107,107,0.15); }
+
+/* ── MAIN ── */
+.main { padding: 28px 32px; overflow-y: auto; }
+
+/* Top header */
+.main-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+
+.header-left {}
+.day-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; color: var(--cyan);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  opacity: 0.8; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.day-eyebrow::before { content: ''; width: 20px; height: 1px; background: var(--cyan); opacity: 0.6; }
+.day-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 32px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.05em;
+  line-height: 1;
+}
+.day-subtitle { font-size: 13px; color: var(--muted); margin-top: 6px; font-weight: 300; }
+
+/* Status bar */
+.status-bar {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--rsm); padding: 8px 14px;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  color: var(--muted); letter-spacing: 0.06em;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+}
+.status-item { display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.status-val { color: var(--text); }
+
+/* Cal strip */
+.cal-strip { display: flex; gap: 5px; }
+.cal-day {
+  width: 42px; height: 50px; border-radius: var(--rsm);
+  border: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  cursor: pointer; transition: all 0.15s; background: var(--bg2);
+  position: relative; overflow: hidden;
+}
+.cal-day::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: var(--cyan);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.3s ease;
+}
+.cal-day:hover::after { transform: scaleX(1); }
+.cal-day:hover { border-color: var(--cyan2); }
+.cal-day.active { background: rgba(0,229,255,0.08); border-color: rgba(0,229,255,0.5); }
+.cal-day.active::after { transform: scaleX(1); }
+.cd-name { font-family: 'Space Mono', monospace; font-size: 8px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em; }
+.cal-day.active .cd-name { color: var(--cyan); }
+.cd-num { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 600; color: var(--text); }
+.cal-day.active .cd-num { color: var(--cyan); text-shadow: 0 0 8px rgba(0,229,255,0.6); }
+.cd-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--green); opacity: 0; }
+.cal-day.has-progress .cd-dot { opacity: 1; box-shadow: 0 0 4px var(--green); }
+
+.top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.cal-btn {
+  padding: 7px 14px; border-radius: var(--rsm);
+  border: 1px solid var(--border); background: var(--bg2);
+  color: var(--muted); font-family: 'Space Mono', monospace; font-size: 9px;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.cal-btn:hover { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 12px rgba(0,229,255,0.15); }
+
+/* Section labels */
+.section-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--muted); margin: 24px 0 10px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label .sl-icon { color: var(--cyan); font-size: 10px; }
+.section-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+/* Task blocks */
+.task-block {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 15px; border-radius: var(--r);
+  border: 1px solid var(--border); background: var(--bg1);
+  margin-bottom: 6px; transition: all 0.2s; cursor: pointer;
+  position: relative; overflow: hidden;
+}
+.task-block::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--cyan); opacity: 0;
+  transition: opacity 0.2s;
+}
+.task-block:hover { border-color: var(--border2); background: var(--bg2); }
+.task-block:hover::before { opacity: 0.5; }
+.task-block.done { opacity: 0.35; }
+.task-block.done .task-title { text-decoration: line-through; }
+.task-block.done::before { opacity: 1; background: var(--green); }
+
+.checkbox {
+  width: 18px; height: 18px; border-radius: 3px;
+  border: 1px solid var(--border2); flex-shrink: 0; margin-top: 2px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; background: transparent;
+}
+.task-block:hover .checkbox { border-color: var(--cyan2); }
+.task-block.done .checkbox {
+  background: var(--green); border-color: var(--green);
+  box-shadow: 0 0 8px rgba(57,255,133,0.4);
+}
+.checkmark { display: none; }
+.task-block.done .checkmark { display: block; }
+
+.task-content { flex: 1; min-width: 0; }
+.task-time {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  color: var(--muted); margin-bottom: 3px; letter-spacing: 0.06em;
+}
+.task-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.task-desc { font-size: 11px; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.cat-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; padding: 3px 8px; border-radius: 3px;
+  font-weight: 400; flex-shrink: 0; margin-top: 1px;
+  letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+  border: 1px solid;
+}
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(2,8,16,0.85); z-index: 100;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg1); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 24px; width: 360px; max-width: 95vw;
+  box-shadow: 0 0 60px rgba(0,229,255,0.1), 0 0 120px rgba(0,229,255,0.05);
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-title {
+  font-family: 'Orbitron', monospace; font-size: 14px;
+  color: var(--cyan); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.modal-close { background: none; border: 1px solid var(--border); color: var(--muted); width: 26px; height: 26px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.modal-close:hover { border-color: var(--coral); color: var(--coral); }
+.modal-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.modal-nav button {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  width: 26px; height: 26px; border-radius: 4px; cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-nav button:hover { border-color: var(--cyan); color: var(--cyan); }
+.modal-month { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text); flex: 1; text-align: center; letter-spacing: 0.1em; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-gh { font-family: 'Space Mono', monospace; font-size: 8px; text-align: center; color: var(--muted); padding: 4px 0; letter-spacing: 0.1em; }
+.cal-cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; font-family: 'Space Mono', monospace; font-size: 11px;
+  color: var(--muted); cursor: pointer; transition: all 0.15s; position: relative;
+}
+.cal-cell:hover { background: var(--bg3); color: var(--text); }
+.cal-cell.today {
+  color: var(--cyan); font-weight: 700;
+  background: rgba(0,229,255,0.08);
+  box-shadow: inset 0 0 0 1px rgba(0,229,255,0.3);
+}
+.cal-cell.empty { cursor: default; pointer-events: none; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+@media (max-width: 768px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; }
+  .main { padding: 16px; }
+  .cal-strip { overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo-block">
+      <div class="logo-tag">// GEO-AI RESEARCH OPS</div>
+      <div class="logo">TEJA.SYS</div>
+      <div class="logo-sub">IIT KANPUR &nbsp;·&nbsp; GEOINFORMATICS</div>
+    </div>
+
+    <div class="coords">
+      <div>LAT &nbsp;<span class="coords-val">26.5123° N</span></div>
+      <div>LON &nbsp;<span class="coords-val">80.2329° E</span></div>
+      <div>MODE <span class="coords-val">LEAVE OPS</span></div>
+      <div>EPOCH <span class="coords-val" id="epochVal">—</span></div>
+    </div>
+
+    <div class="progress-section">
+      <div class="ring-wrap">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle class="ring-bg" cx="55" cy="55" r="48"/>
+          <circle class="ring-fg" id="ringFg" cx="55" cy="55" r="48" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+        </svg>
+        <div class="ring-text">
+          <span class="ring-pct" id="ringPct">0%</span>
+          <span class="ring-label">progress</span>
+        </div>
+      </div>
+      <div class="cat-breakdown" id="catBreakdown"></div>
+    </div>
+
+    <nav>
+      <div class="nav-label">Mission days</div>
+      <div id="dayNav"></div>
+    </nav>
+
+    <button class="reset-btn" id="resetBtn">[ RESET DAY ]</button>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div class="header-left">
+        <div class="day-eyebrow" id="dayEyebrow">DAY ACTIVE</div>
+        <div class="day-title" id="mainDayTitle">MONDAY</div>
+        <div class="day-subtitle" id="mainDaySubtitle"></div>
+      </div>
+      <div class="top-right">
+        <button class="cal-btn" id="openCalBtn">[ CAL VIEW ]</button>
+        <div class="cal-strip" id="calStrip"></div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <div class="status-item">
+        <div class="status-dot" style="background:var(--green)"></div>
+        <span>SYSTEM <span class="status-val">ONLINE</span></span>
+      </div>
+      <div class="status-item">
+        <div class="status-dot" style="background:var(--cyan)"></div>
+        <span>MODE <span class="status-val">LEAVE</span></span>
+      </div>
+      <div class="status-item">
+        <span>TASKS <span class="status-val" id="statusTasks">0/0</span></span>
+      </div>
+      <div class="status-item">
+        <span>ETA <span class="status-val" id="statusETA">—</span></span>
+      </div>
+    </div>
+
+    <div id="taskList"></div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="calModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">// CALENDAR</span>
+      <button class="modal-close" id="closeCalBtn">&#10005;</button>
+    </div>
+    <div class="modal-nav">
+      <button id="prevMonthBtn">&#8249;</button>
+      <span class="modal-month" id="calModalMonth"></span>
+      <button id="nextMonthBtn">&#8250;</button>
+    </div>
+    <div class="cal-grid" id="calModalGrid"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var TODAY = new Date();
+  var CIRC = 2 * Math.PI * 48;
+
+  var CATS = {
+    research: { label: "RESEARCH", color: "#00e5ff",  bg: "rgba(0,229,255,0.08)",  border: "rgba(0,229,255,0.25)" },
+    ielts:    { label: "IELTS",    color: "#b388ff",  bg: "rgba(179,136,255,0.08)", border: "rgba(179,136,255,0.25)" },
+    german:   { label: "GERMAN",   color: "#ffb300",  bg: "rgba(255,179,0,0.08)",   border: "rgba(255,179,0,0.25)" },
+    read:     { label: "READING",  color: "#ff9e6d",  bg: "rgba(255,158,109,0.08)", border: "rgba(255,158,109,0.25)" },
+    music:    { label: "MUSIC",    color: "#ff6bbb",  bg: "rgba(255,107,187,0.08)", border: "rgba(255,107,187,0.25)" },
+    fitness:  { label: "FITNESS",  color: "#39ff85",  bg: "rgba(57,255,133,0.08)",  border: "rgba(57,255,133,0.25)" },
+    comedy:   { label: "COMEDY",   color: "#ffd166",  bg: "rgba(255,209,102,0.08)", border: "rgba(255,209,102,0.25)" },
+    brk:      { label: "BREAK",    color: "#4a7a9b",  bg: "rgba(74,122,155,0.06)",  border: "rgba(74,122,155,0.2)" }
+  };
+
+  var WEEKDAY = [
+    { id:"w1",  time:"05:30 — 06:00", title:"Wake up & morning routine",            desc:"Freshen up, no phone for 15 min, light stretching",                                       cat:"brk" },
+    { id:"w2",  time:"06:00 — 07:00", title:"Yoga / Exercise",                      desc:"Sun salutations, pranayama, or a 5K run — body sets the tone for the day",               cat:"fitness" },
+    { id:"w3",  time:"07:00 — 07:30", title:"Breakfast + skim yesterday notes",     desc:"Eat mindfully. 10 min priming brain with yesterday lit notes.",                          cat:"brk" },
+    { id:"w4",  time:"07:30 — 09:30", title:"Literature survey — block 1",          desc:"Deep focus: 1-2 LiDAR-IMU/PDR/SLAM papers. Note: problem, method, result, gap.",        cat:"research" },
+    { id:"w5",  time:"09:30 — 09:45", title:"Short break",                          desc:"Walk, water, eyes off screen.",                                                          cat:"brk" },
+    { id:"w6",  time:"09:45 — 10:45", title:"IELTS prep (1 hr)",                    desc:"Rotate: Mon/Fri=Reading, Tue=Writing, Wed=Listening, Thu=Speaking. Cambridge books.",   cat:"ielts" },
+    { id:"w7",  time:"10:45 — 12:00", title:"Literature survey — block 2",          desc:"Write synthesis notes: how does this paper connect to your MTech topic?",               cat:"research" },
+    { id:"w8",  time:"12:00 — 13:00", title:"Lunch + rest",                         desc:"Eat and genuinely rest — no YouTube deep dives.",                                        cat:"brk" },
+    { id:"w9",  time:"13:00 — 14:00", title:"German learning (1 hr)",               desc:"A1 to B1 playlist: 2 videos, pause and repeat, update Anki, write 5 new words.",        cat:"german" },
+    { id:"w10", time:"14:00 — 15:00", title:"Comedy timing study (1 hr)",           desc:"Watch The Office / Arrested Dev / Sarabhai / Zakir Khan. Pause, analyse the beat.",     cat:"comedy" },
+    { id:"w11", time:"15:00 — 16:00", title:"Project Hail Mary (1 hr)",             desc:"Uninterrupted reading — great palate cleanser after dense research morning.",           cat:"read" },
+    { id:"w12", time:"16:00 — 16:15", title:"Tea break",                            desc:"Step outside if possible.",                                                             cat:"brk" },
+    { id:"w13", time:"16:15 — 17:45", title:"Music — keyboard + singing (90 min)",  desc:"30 min keyboard scales/chords, 30 min song practice, 30 min vocal warm-up + riyaaz.", cat:"music" },
+    { id:"w14", time:"17:45 — 18:30", title:"Free time / personal projects",        desc:"PhD tracker tweaks, casual browsing, calls with family — guilt-free downtime.",        cat:"brk" },
+    { id:"w15", time:"18:30 — 19:30", title:"Walk + dinner",                        desc:"Walk 20-30 min before or after dinner. No screens at the table.",                      cat:"fitness" },
+    { id:"w16", time:"19:30 — 20:30", title:"Review + plan tomorrow",               desc:"Journal 3 things learned. Mark papers for tomorrow. Set IELTS topic. 10 min Anki.",   cat:"brk" },
+    { id:"w17", time:"21:00 — 21:30", title:"Wind down",                            desc:"No screens. Light reading or meditation.",                                              cat:"brk" },
+    { id:"w18", time:"22:00",         title:"Sleep",                                desc:"Consistent sleep = memory consolidation + energy.",                                     cat:"brk" }
+  ];
+
+  var SATURDAY = [
+    { id:"s1",  time:"05:30 — 07:00", title:"Slow wake + extended yoga",             desc:"No alarm rush. Full 60-min yoga or longer run.",                                        cat:"fitness" },
+    { id:"s2",  time:"07:00 — 07:30", title:"Relaxed breakfast",                     desc:"Slow, enjoyable breakfast — no study pressure.",                                        cat:"brk" },
+    { id:"s3",  time:"07:30 — 10:30", title:"Deep literature survey (3 hr)",          desc:"Pick one major survey article, go deep. Annotate heavily. Find open problems.",         cat:"research" },
+    { id:"s4",  time:"10:30 — 11:00", title:"Break + walk",                           desc:"Step outside, no screens.",                                                            cat:"brk" },
+    { id:"s5",  time:"11:00 — 12:00", title:"IELTS — full mock section (1 hr)",       desc:"Full timed section (e.g. Writing Task 1+2 in 60 min). Self-grade honestly.",           cat:"ielts" },
+    { id:"s6",  time:"12:00 — 13:30", title:"Lunch + full rest",                      desc:"No study at all. Recharge completely.",                                                cat:"brk" },
+    { id:"s7",  time:"13:30 — 14:30", title:"German — weekly review (1 hr)",           desc:"Revise week Anki deck. Write a short German paragraph (5-7 sentences) about your day.",cat:"german" },
+    { id:"s8",  time:"14:30 — 15:30", title:"Comedy study (1 hr)",                    desc:"Weekend: try performing a bit you wrote. Record yourself. Analyse what landed.",        cat:"comedy" },
+    { id:"s9",  time:"15:30 — 17:00", title:"Project Hail Mary (1.5 hr)",             desc:"Extended weekend read with tea — enjoy without a clock.",                              cat:"read" },
+    { id:"s10", time:"17:00 — 18:30", title:"Music — extended session (90 min)",       desc:"45 min keyboard + 45 min singing. Record a short melody or cover and listen back.",    cat:"music" },
+    { id:"s11", time:"18:30 — 20:30", title:"Free time / outing",                     desc:"Go out, meet people, watch a show — fully offline from study mode.",                  cat:"brk" },
+    { id:"s12", time:"20:30 — 21:00", title:"Weekly review",                          desc:"Papers read? IELTS done? German words? Comedy observed? Rate 1-10 each track.",       cat:"brk" },
+    { id:"s13", time:"22:00",         title:"Sleep",                                  desc:"Same bedtime even on weekends.",                                                       cat:"brk" }
+  ];
+
+  var SUNDAY = [
+    { id:"su1", time:"06:00 — 07:00", title:"Slow morning + light yoga",              desc:"No alarm pressure. Short walk or gentle yoga.",                                        cat:"fitness" },
+    { id:"su2", time:"07:00 — 08:00", title:"Breakfast + leisure",                    desc:"Read something fun, watch a short video — fully relaxed.",                            cat:"brk" },
+    { id:"su3", time:"08:00 — 09:00", title:"IELTS speaking practice (1 hr)",          desc:"Part 2 cue cards out loud. Record yourself and listen. Fluency over perfection.",      cat:"ielts" },
+    { id:"su4", time:"09:00 — 10:30", title:"Literature synthesis writing",            desc:"Write synthesis of this week papers (200-300 words). Becomes your thesis lit review.",cat:"research" },
+    { id:"su5", time:"10:30 — 11:30", title:"German conversational practice",          desc:"Watch Easy German. Shadow speakers. Write a German diary entry.",                     cat:"german" },
+    { id:"su6", time:"11:30 — 12:30", title:"Comedy performance drill",                desc:"Pick your best joke from this week. Perform it 3 times with different timing.",        cat:"comedy" },
+    { id:"su7", time:"12:30 — 17:00", title:"Full rest — personal time",               desc:"Family, friends, hobbies, or absolutely nothing. Full recharge.",                     cat:"brk" },
+    { id:"su8", time:"17:00 — 18:00", title:"Singing — relaxed practice (1 hr)",       desc:"Sing songs you enjoy. Keep the joy in the process.",                                   cat:"music" },
+    { id:"su9", time:"18:00 — 19:00", title:"Project Hail Mary (1 hr)",                desc:"Evening read with tea — the perfect Sunday ritual.",                                  cat:"read" },
+    { id:"su10",time:"19:00 — 20:00", title:"Walk + plan the week",                    desc:"Walk outside. Think through next week goals. No notes needed.",                        cat:"fitness" },
+    { id:"su11",time:"20:00 — 21:00", title:"Dinner + wind down",                     desc:"Early, light dinner. No screens after 21:00.",                                         cat:"brk" },
+    { id:"su12",time:"22:00",         title:"Sleep",                                  desc:"Good week starts with Sunday night sleep.",                                            cat:"brk" }
+  ];
+
+  var DAYS = [
+    { label:"MONDAY",    subtitle:"Research block A — literature intake",        data: WEEKDAY },
+    { label:"TUESDAY",   subtitle:"Research block B — IELTS writing module",     data: WEEKDAY },
+    { label:"WEDNESDAY", subtitle:"Midpoint vector — listening module active",   data: WEEKDAY },
+    { label:"THURSDAY",  subtitle:"Deep processing — speaking module active",    data: WEEKDAY },
+    { label:"FRIDAY",    subtitle:"Final push — reading module + synthesis",     data: WEEKDAY },
+    { label:"SATURDAY",  subtitle:"Extended survey mission + weekly debrief",    data: SATURDAY },
+    { label:"SUNDAY",    subtitle:"Recovery cycle — reflect, recharge, plan",    data: SUNDAY }
+  ];
+
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem("tejaGeoState") || "{}"); } catch(e) { state = {}; }
+
+  var dow = TODAY.getDay();
+  var currentDay = (dow === 0) ? 6 : dow - 1;
+  var calYear = TODAY.getFullYear();
+  var calMonth = TODAY.getMonth();
+
+  function saveState() {
+    try { localStorage.setItem("tejaGeoState", JSON.stringify(state)); } catch(e) {}
+  }
+
+  function getKey(dayIdx, taskId) { return "d" + dayIdx + "_" + taskId; }
+  function isChecked(dayIdx, taskId) { return !!state[getKey(dayIdx, taskId)]; }
+
+  function toggleTask(dayIdx, taskId) {
+    var key = getKey(dayIdx, taskId);
+    state[key] = !state[key];
+    saveState();
+    render();
+  }
+
+  function dayProgress(dayIdx) {
+    var tasks = DAYS[dayIdx].data;
+    var done = 0;
+    for (var i = 0; i < tasks.length; i++) {
+      if (isChecked(dayIdx, tasks[i].id)) done++;
+    }
+    return { done: done, total: tasks.length, pct: tasks.length ? Math.round(done / tasks.length * 100) : 0 };
+  }
+
+  function catProgress(dayIdx, cat) {
+    var tasks = DAYS[dayIdx].data;
+    var total = 0, done = 0;
+    for (var i = 0; i < tasks.length; i++) {
+      if (tasks[i].cat === cat) { total++; if (isChecked(dayIdx, tasks[i].id)) done++; }
+    }
+    return { done: done, total: total };
+  }
+
+  function resetDay() {
+    var tasks = DAYS[currentDay].data;
+    for (var i = 0; i < tasks.length; i++) { state[getKey(currentDay, tasks[i].id)] = false; }
+    saveState(); render();
+  }
+
+  function switchDay(i) { currentDay = i; render(); window.scrollTo(0,0); }
+
+  function updateEpoch() {
+    var now = new Date();
+    var h = String(now.getHours()).padStart(2,"0");
+    var m = String(now.getMinutes()).padStart(2,"0");
+    var s = String(now.getSeconds()).padStart(2,"0");
+    var el = document.getElementById("epochVal");
+    if (el) el.textContent = h + ":" + m + ":" + s + " IST";
+  }
+
+  function render() {
+    renderDayNav();
+    renderCalStrip();
+    renderHeader();
+    renderRing();
+    renderCatBreakdown();
+    renderTaskList();
+    renderStatusBar();
+    updateEpoch();
+  }
+
+  function renderDayNav() {
+    var nav = document.getElementById("dayNav");
+    var html = "";
+    for (var i = 0; i < DAYS.length; i++) {
+      var p = dayProgress(i);
+      var active = (i === currentDay) ? " active" : "";
+      html += "<button class=\"day-btn" + active + "\" data-idx=\"" + i + "\">" +
+        "<span>" + DAYS[i].label + "</span>" +
+        "<span class=\"dbadge\">" + p.done + "/" + p.total + "</span>" +
+        "</button>";
+    }
+    nav.innerHTML = html;
+    var btns = nav.querySelectorAll(".day-btn");
+    for (var j = 0; j < btns.length; j++) {
+      (function(idx) { btns[idx].addEventListener("click", function() { switchDay(idx); }); })(j);
+    }
+  }
+
+  function renderCalStrip() {
+    var strip = document.getElementById("calStrip");
+    var d2 = TODAY.getDay();
+    var weekStart = new Date(TODAY);
+    weekStart.setDate(TODAY.getDate() - (d2 === 0 ? 6 : d2 - 1));
+    var letters = ["M","T","W","T","F","S","S"];
+    var html = "";
+    for (var i = 0; i < 7; i++) {
+      var dd = new Date(weekStart);
+      dd.setDate(weekStart.getDate() + i);
+      var p = dayProgress(i);
+      var cls = "cal-day" + (i === currentDay ? " active" : "") + (p.done > 0 ? " has-progress" : "");
+      html += "<div class=\"" + cls + "\" data-idx=\"" + i + "\">" +
+        "<span class=\"cd-name\">" + letters[i] + "</span>" +
+        "<span class=\"cd-num\">" + dd.getDate() + "</span>" +
+        "<span class=\"cd-dot\"></span>" +
+        "</div>";
+    }
+    strip.innerHTML = html;
+    var items = strip.querySelectorAll(".cal-day");
+    for (var j = 0; j < items.length; j++) {
+      (function(idx) { items[idx].addEventListener("click", function() { switchDay(idx); }); })(j);
+    }
+  }
+
+  function renderHeader() {
+    var dayNames = ["MON","TUE","WED","THU","FRI","SAT","SUN"];
+    document.getElementById("dayEyebrow").textContent = "DAY-" + (currentDay+1) + " // " + dayNames[currentDay] + " ACTIVE";
+    document.getElementById("mainDayTitle").textContent = DAYS[currentDay].label;
+    document.getElementById("mainDaySubtitle").textContent = DAYS[currentDay].subtitle;
+  }
+
+  function renderRing() {
+    var p = dayProgress(currentDay);
+    var offset = CIRC - (CIRC * p.pct / 100);
+    document.getElementById("ringFg").style.strokeDashoffset = offset;
+    document.getElementById("ringPct").textContent = p.pct + "%";
+  }
+
+  function renderCatBreakdown() {
+    var el = document.getElementById("catBreakdown");
+    var keys = ["research","ielts","german","comedy","music","fitness","read"];
+    var html = "";
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var p = catProgress(currentDay, k);
+      if (!p.total) continue;
+      var barW = Math.round((p.done / p.total) * 52);
+      var cat = CATS[k];
+      html += "<div class=\"cat-row\">" +
+        "<div class=\"cat-dot\" style=\"background:" + cat.color + ";color:" + cat.color + "\"></div>" +
+        "<span class=\"cat-name\">" + cat.label + "</span>" +
+        "<div class=\"cat-bar-wrap\"><div class=\"cat-bar\" style=\"width:" + barW + "px;background:" + cat.color + "\"></div></div>" +
+        "<span class=\"cat-count\">" + p.done + "/" + p.total + "</span>" +
+        "</div>";
+    }
+    el.innerHTML = html;
+  }
+
+  function renderStatusBar() {
+    var p = dayProgress(currentDay);
+    document.getElementById("statusTasks").textContent = p.done + "/" + p.total;
+    var remaining = p.total - p.done;
+    document.getElementById("statusETA").textContent = remaining > 0 ? remaining + " tasks remain" : "ALL COMPLETE";
+  }
+
+  function renderTaskList() {
+    var tasks = DAYS[currentDay].data;
+    var used = {};
+
+    function isAM(t) { return t.time.indexOf("AM") !== -1 || (t.time.indexOf("PM") === -1 && parseInt(t.time,10) < 12); }
+    function isPM(t) { return t.time.indexOf("PM") !== -1 || (parseInt(t.time,10) >= 12 && parseInt(t.time,10) < 22); }
+    function startHr(t) { var m = t.time.match(/^(\d+)/); return m ? parseInt(m[1],10) : 0; }
+
+    var sections = [
+      {
+        label: "// MORNING — PRODUCTIVE CORE", icon: "",
+        fn: function(t) { var h = startHr(t); return h >= 5 && h < 12; }
+      },
+      {
+        label: "// AFTERNOON — LEARNING OPS", icon: "",
+        fn: function(t) { var h = startHr(t); return h >= 12 && h < 17; }
+      },
+      {
+        label: "// EVENING — CREATIVE CYCLE", icon: "",
+        fn: function(t) { var h = startHr(t); return h >= 17 && h < 21; }
+      },
+      {
+        label: "// NIGHT — SHUTDOWN SEQUENCE", icon: "",
+        fn: function(t) { return !used[t.id]; }
+      }
+    ];
+
+    var html = "";
+    for (var s = 0; s < sections.length; s++) {
+      var sec = sections[s];
+      var secTasks = [];
+      for (var i = 0; i < tasks.length; i++) {
+        if (!used[tasks[i].id] && sec.fn(tasks[i])) secTasks.push(tasks[i]);
+      }
+      if (!secTasks.length) continue;
+      for (var j = 0; j < secTasks.length; j++) { used[secTasks[j].id] = true; }
+      html += "<div class=\"section-label\">" + sec.label + "</div>";
+      for (var k = 0; k < secTasks.length; k++) {
+        var t = secTasks[k];
+        var done = isChecked(currentDay, t.id);
+        var cat = CATS[t.cat];
+        html += "<div class=\"task-block" + (done ? " done" : "") + "\" data-taskid=\"" + t.id + "\">" +
+          "<div class=\"checkbox\">" +
+          "<svg class=\"checkmark\" width=\"11\" height=\"9\" viewBox=\"0 0 11 9\" fill=\"none\">" +
+          "<path d=\"M1 4.5l3 3L10 1\" stroke=\"#050a0f\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>" +
+          "</svg></div>" +
+          "<div class=\"task-content\">" +
+          "<div class=\"task-time\">" + t.time + "</div>" +
+          "<div class=\"task-title\">" + t.title + "</div>" +
+          "<div class=\"task-desc\">" + t.desc + "</div>" +
+          "</div>" +
+          "<span class=\"cat-tag\" style=\"background:" + cat.bg + ";color:" + cat.color + ";border-color:" + cat.border + "\">" + cat.label + "</span>" +
+          "</div>";
+      }
+    }
+
+    var listEl = document.getElementById("taskList");
+    listEl.innerHTML = html;
+    var blocks = listEl.querySelectorAll(".task-block");
+    for (var b = 0; b < blocks.length; b++) {
+      (function(taskId) {
+        blocks[b].addEventListener("click", function() { toggleTask(currentDay, taskId); });
+      })(blocks[b].getAttribute("data-taskid"));
+    }
+  }
+
+  function renderCalModal() {
+    var months = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+    document.getElementById("calModalMonth").textContent = months[calMonth] + " " + calYear;
+    var first = new Date(calYear, calMonth, 1).getDay();
+    var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    var offset = (first === 0) ? 6 : first - 1;
+    var dayLetters = ["MO","TU","WE","TH","FR","SA","SU"];
+    var html = "";
+    for (var h = 0; h < 7; h++) html += "<div class=\"cal-gh\">" + dayLetters[h] + "</div>";
+    for (var e = 0; e < offset; e++) html += "<div class=\"cal-cell empty\"></div>";
+    for (var day = 1; day <= daysInMonth; day++) {
+      var isToday = (day === TODAY.getDate() && calMonth === TODAY.getMonth() && calYear === TODAY.getFullYear());
+      html += "<div class=\"cal-cell" + (isToday ? " today" : "") + "\">" + day + "</div>";
+    }
+    document.getElementById("calModalGrid").innerHTML = html;
+  }
+
+  function openCal() {
+    calYear = TODAY.getFullYear(); calMonth = TODAY.getMonth();
+    renderCalModal();
+    document.getElementById("calModal").classList.add("open");
+  }
+
+  function closeCal() { document.getElementById("calModal").classList.remove("open"); }
+
+  document.getElementById("resetBtn").addEventListener("click", resetDay);
+  document.getElementById("openCalBtn").addEventListener("click", openCal);
+  document.getElementById("closeCalBtn").addEventListener("click", closeCal);
+  document.getElementById("calModal").addEventListener("click", function(e) { if (e.target === this) closeCal(); });
+  document.getElementById("prevMonthBtn").addEventListener("click", function() {
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalModal();
+  });
+  document.getElementById("nextMonthBtn").addEventListener("click", function() {
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalModal();
+  });
+
+  render();
+  setInterval(updateEpoch, 1000);
+})();
+</script>
+</body>
+</html>
