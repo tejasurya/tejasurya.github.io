@@ -486,76 +486,62 @@ body::after {
   var CIRC = 2 * Math.PI * 48;
 
   var CATS = {
-    research: { label: "RESEARCH", color: "#00e5ff",  bg: "rgba(0,229,255,0.08)",  border: "rgba(0,229,255,0.25)" },
+    research: { label: "STUDY/LAB", color: "#00e5ff",  bg: "rgba(0,229,255,0.08)",  border: "rgba(0,229,255,0.25)" },
     ielts:    { label: "IELTS",    color: "#b388ff",  bg: "rgba(179,136,255,0.08)", border: "rgba(179,136,255,0.25)" },
-    german:   { label: "GERMAN",   color: "#ffb300",  bg: "rgba(255,179,0,0.08)",   border: "rgba(255,179,0,0.25)" },
-    read:     { label: "READING",  color: "#ff9e6d",  bg: "rgba(255,158,109,0.08)", border: "rgba(255,158,109,0.25)" },
     music:    { label: "MUSIC",    color: "#ff6bbb",  bg: "rgba(255,107,187,0.08)", border: "rgba(255,107,187,0.25)" },
     fitness:  { label: "FITNESS",  color: "#39ff85",  bg: "rgba(57,255,133,0.08)",  border: "rgba(57,255,133,0.25)" },
-    comedy:   { label: "COMEDY",   color: "#ffd166",  bg: "rgba(255,209,102,0.08)", border: "rgba(255,209,102,0.25)" },
+    entertain:{ label: "DOWNTIME", color: "#ffd166",  bg: "rgba(255,209,102,0.08)", border: "rgba(255,209,102,0.25)" },
+    meeting:  { label: "SUPERVISOR", color: "#ff6b6b", bg: "rgba(255,107,107,0.08)", border: "rgba(255,107,107,0.25)" },
     brk:      { label: "BREAK",    color: "#4a7a9b",  bg: "rgba(74,122,155,0.06)",  border: "rgba(74,122,155,0.2)" }
   };
 
-  var WEEKDAY = [
-    { id:"w1",  time:"05:30 — 06:00", title:"Wake up & morning routine",            desc:"Freshen up, no phone for 15 min, light stretching",                                       cat:"brk" },
-    { id:"w2",  time:"06:00 — 07:00", title:"Yoga / Exercise",                      desc:"Sun salutations, pranayama, or a 5K run — body sets the tone for the day",               cat:"fitness" },
-    { id:"w3",  time:"07:00 — 07:30", title:"Breakfast + skim yesterday notes",     desc:"Eat mindfully. 10 min priming brain with yesterday lit notes.",                          cat:"brk" },
-    { id:"w4",  time:"07:30 — 09:30", title:"Literature survey — block 1",          desc:"Deep focus: 1-2 LiDAR-IMU/PDR/SLAM papers. Note: problem, method, result, gap.",        cat:"research" },
-    { id:"w5",  time:"09:30 — 09:45", title:"Short break",                          desc:"Walk, water, eyes off screen.",                                                          cat:"brk" },
-    { id:"w6",  time:"09:45 — 10:45", title:"IELTS prep (1 hr)",                    desc:"Rotate: Mon/Fri=Reading, Tue=Writing, Wed=Listening, Thu=Speaking. Cambridge books.",   cat:"ielts" },
-    { id:"w7",  time:"10:45 — 12:00", title:"Literature survey — block 2",          desc:"Write synthesis notes: how does this paper connect to your MTech topic?",               cat:"research" },
-    { id:"w8",  time:"12:00 — 13:00", title:"Lunch + rest",                         desc:"Eat and genuinely rest — no YouTube deep dives.",                                        cat:"brk" },
-    { id:"w9",  time:"13:00 — 14:00", title:"German learning (1 hr)",               desc:"A1 to B1 playlist: 2 videos, pause and repeat, update Anki, write 5 new words.",        cat:"german" },
-    { id:"w10", time:"14:00 — 15:00", title:"Comedy timing study (1 hr)",           desc:"Watch The Office / Arrested Dev / Sarabhai / Zakir Khan. Pause, analyse the beat.",     cat:"comedy" },
-    { id:"w11", time:"15:00 — 16:00", title:"Project Hail Mary (1 hr)",             desc:"Uninterrupted reading — great palate cleanser after dense research morning.",           cat:"read" },
-    { id:"w12", time:"16:00 — 16:15", title:"Tea break",                            desc:"Step outside if possible.",                                                             cat:"brk" },
-    { id:"w13", time:"16:15 — 17:45", title:"Music — keyboard + singing (90 min)",  desc:"30 min keyboard scales/chords, 30 min song practice, 30 min vocal warm-up + riyaaz.", cat:"music" },
-    { id:"w14", time:"17:45 — 18:30", title:"Free time / personal projects",        desc:"PhD tracker tweaks, casual browsing, calls with family — guilt-free downtime.",        cat:"brk" },
-    { id:"w15", time:"18:30 — 19:30", title:"Walk + dinner",                        desc:"Walk 20-30 min before or after dinner. No screens at the table.",                      cat:"fitness" },
-    { id:"w16", time:"19:30 — 20:30", title:"Review + plan tomorrow",               desc:"Journal 3 things learned. Mark papers for tomorrow. Set IELTS topic. 10 min Anki.",   cat:"brk" },
-    { id:"w17", time:"21:00 — 21:30", title:"Wind down",                            desc:"No screens. Light reading or meditation.",                                              cat:"brk" },
-    { id:"w18", time:"22:00",         title:"Sleep",                                desc:"Consistent sleep = memory consolidation + energy.",                                     cat:"brk" }
+  var DAILY = [
+    { id:"d1",  time:"00:00 — 06:30", title:"Sleep",                         desc:"6.5 hrs. Note: on the low side for sustained research + IELTS + gym load.", cat:"brk" },
+    { id:"d2",  time:"06:30 — 07:00", title:"Freshen up",                    desc:"Wash up, get the body moving toward the day.",                              cat:"brk" },
+    { id:"d3",  time:"07:00 — 08:00", title:"Gym",                           desc:"Strength or cardio session.",                                               cat:"fitness" },
+    { id:"d4",  time:"08:00 — 09:00", title:"Breakfast",                     desc:"Eat properly before the lab block — don't rush this.",                     cat:"brk" },
+    { id:"d5",  time:"09:00 — 09:30", title:"Get ready",                     desc:"Shower/dress, pack bag for lab.",                                           cat:"brk" },
+    { id:"d6",  time:"09:30 — 09:45", title:"Commute to lab",                desc:"Travel to lab.",                                                            cat:"brk" },
+    { id:"d7",  time:"09:45 — 12:45", title:"Study / Research — block 1",    desc:"3 hr focused block. Literature, coding, thesis work.",                      cat:"research" },
+    { id:"d8",  time:"12:45 — 13:00", title:"Break",                         desc:"Short break, step away from the desk.",                                     cat:"brk" },
+    { id:"d9",  time:"13:00 — 14:00", title:"Study / Research — block 2",    desc:"1 hr block. Continue research/thesis work.",                               cat:"research" },
+    { id:"d10", time:"14:00 — 15:30", title:"Lunch + Nap",                   desc:"Eat, then rest — protects the afternoon energy dip.",                       cat:"brk" },
+    { id:"d11", time:"15:30 — 17:00", title:"IELTS prep",                    desc:"1.5 hr. Rotate Reading/Writing/Listening/Speaking across the week.",        cat:"ielts" },
+    { id:"d12", time:"17:00 — 18:00", title:"Free / buffer time",            desc:"Unstructured — absorb overflow or genuinely rest, but be honest about which.", cat:"brk" },
+    { id:"d13", time:"18:00 — 19:00", title:"Music time",                    desc:"Practice, listen, unwind with music.",                                      cat:"music" },
+    { id:"d14", time:"19:00 — 20:00", title:"Movie / Web series",            desc:"Entertainment downtime.",                                                   cat:"entertain" },
+    { id:"d15", time:"20:00 — 20:30", title:"Dinner",                        desc:"Eat without rushing into the next block.",                                  cat:"brk" },
+    { id:"d16", time:"21:00 — 24:00", title:"Walk + Misc",                   desc:"3 hr flexible block — walk, errands, leftover work. Watch that this doesn't silently absorb work you should be tracking as study.", cat:"fitness" }
   ];
 
-  var SATURDAY = [
-    { id:"s1",  time:"05:30 — 07:00", title:"Slow wake + extended yoga",             desc:"No alarm rush. Full 60-min yoga or longer run.",                                        cat:"fitness" },
-    { id:"s2",  time:"07:00 — 07:30", title:"Relaxed breakfast",                     desc:"Slow, enjoyable breakfast — no study pressure.",                                        cat:"brk" },
-    { id:"s3",  time:"07:30 — 10:30", title:"Deep literature survey (3 hr)",          desc:"Pick one major survey article, go deep. Annotate heavily. Find open problems.",         cat:"research" },
-    { id:"s4",  time:"10:30 — 11:00", title:"Break + walk",                           desc:"Step outside, no screens.",                                                            cat:"brk" },
-    { id:"s5",  time:"11:00 — 12:00", title:"IELTS — full mock section (1 hr)",       desc:"Full timed section (e.g. Writing Task 1+2 in 60 min). Self-grade honestly.",           cat:"ielts" },
-    { id:"s6",  time:"12:00 — 13:30", title:"Lunch + full rest",                      desc:"No study at all. Recharge completely.",                                                cat:"brk" },
-    { id:"s7",  time:"13:30 — 14:30", title:"German — weekly review (1 hr)",           desc:"Revise week Anki deck. Write a short German paragraph (5-7 sentences) about your day.",cat:"german" },
-    { id:"s8",  time:"14:30 — 15:30", title:"Comedy study (1 hr)",                    desc:"Weekend: try performing a bit you wrote. Record yourself. Analyse what landed.",        cat:"comedy" },
-    { id:"s9",  time:"15:30 — 17:00", title:"Project Hail Mary (1.5 hr)",             desc:"Extended weekend read with tea — enjoy without a clock.",                              cat:"read" },
-    { id:"s10", time:"17:00 — 18:30", title:"Music — extended session (90 min)",       desc:"45 min keyboard + 45 min singing. Record a short melody or cover and listen back.",    cat:"music" },
-    { id:"s11", time:"18:30 — 20:30", title:"Free time / outing",                     desc:"Go out, meet people, watch a show — fully offline from study mode.",                  cat:"brk" },
-    { id:"s12", time:"20:30 — 21:00", title:"Weekly review",                          desc:"Papers read? IELTS done? German words? Comedy observed? Rate 1-10 each track.",       cat:"brk" },
-    { id:"s13", time:"22:00",         title:"Sleep",                                  desc:"Same bedtime even on weekends.",                                                       cat:"brk" }
-  ];
-
-  var SUNDAY = [
-    { id:"su1", time:"06:00 — 07:00", title:"Slow morning + light yoga",              desc:"No alarm pressure. Short walk or gentle yoga.",                                        cat:"fitness" },
-    { id:"su2", time:"07:00 — 08:00", title:"Breakfast + leisure",                    desc:"Read something fun, watch a short video — fully relaxed.",                            cat:"brk" },
-    { id:"su3", time:"08:00 — 09:00", title:"IELTS speaking practice (1 hr)",          desc:"Part 2 cue cards out loud. Record yourself and listen. Fluency over perfection.",      cat:"ielts" },
-    { id:"su4", time:"09:00 — 10:30", title:"Literature synthesis writing",            desc:"Write synthesis of this week papers (200-300 words). Becomes your thesis lit review.",cat:"research" },
-    { id:"su5", time:"10:30 — 11:30", title:"German conversational practice",          desc:"Watch Easy German. Shadow speakers. Write a German diary entry.",                     cat:"german" },
-    { id:"su6", time:"11:30 — 12:30", title:"Comedy performance drill",                desc:"Pick your best joke from this week. Perform it 3 times with different timing.",        cat:"comedy" },
-    { id:"su7", time:"12:30 — 17:00", title:"Full rest — personal time",               desc:"Family, friends, hobbies, or absolutely nothing. Full recharge.",                     cat:"brk" },
-    { id:"su8", time:"17:00 — 18:00", title:"Singing — relaxed practice (1 hr)",       desc:"Sing songs you enjoy. Keep the joy in the process.",                                   cat:"music" },
-    { id:"su9", time:"18:00 — 19:00", title:"Project Hail Mary (1 hr)",                desc:"Evening read with tea — the perfect Sunday ritual.",                                  cat:"read" },
-    { id:"su10",time:"19:00 — 20:00", title:"Walk + plan the week",                    desc:"Walk outside. Think through next week goals. No notes needed.",                        cat:"fitness" },
-    { id:"su11",time:"20:00 — 21:00", title:"Dinner + wind down",                     desc:"Early, light dinner. No screens after 21:00.",                                         cat:"brk" },
-    { id:"su12",time:"22:00",         title:"Sleep",                                  desc:"Good week starts with Sunday night sleep.",                                            cat:"brk" }
+  var FRIDAY = [
+    { id:"f1",  time:"00:00 — 06:30", title:"Sleep",                         desc:"6.5 hrs. Note: on the low side for sustained research + IELTS + gym load.", cat:"brk" },
+    { id:"f2",  time:"06:30 — 07:00", title:"Freshen up",                    desc:"Wash up, get the body moving toward the day.",                              cat:"brk" },
+    { id:"f3",  time:"07:00 — 08:00", title:"Gym",                           desc:"Strength or cardio session.",                                               cat:"fitness" },
+    { id:"f4",  time:"08:00 — 09:00", title:"Breakfast",                     desc:"Eat properly before the lab block — don't rush this.",                     cat:"brk" },
+    { id:"f5",  time:"09:00 — 09:30", title:"Get ready",                     desc:"Shower/dress, pack bag for lab.",                                           cat:"brk" },
+    { id:"f6",  time:"09:30 — 09:45", title:"Commute to lab",                desc:"Travel to lab.",                                                            cat:"brk" },
+    { id:"f7",  time:"09:45 — 12:45", title:"Study / Research — block 1",    desc:"3 hr focused block. Literature, coding, thesis work.",                      cat:"research" },
+    { id:"f8",  time:"12:45 — 13:00", title:"Break",                         desc:"Short break, step away from the desk.",                                     cat:"brk" },
+    { id:"f9",  time:"13:00 — 14:00", title:"Study / Research — block 2",    desc:"1 hr block. Continue research/thesis work.",                               cat:"research" },
+    { id:"f10", time:"14:00 — 15:30", title:"Lunch + Nap",                   desc:"Eat, then rest — protects the afternoon energy dip.",                       cat:"brk" },
+    { id:"f11", time:"15:30 — 16:30", title:"Meeting — Dr. Salil Goel",      desc:"Weekly supervisor meeting. Come with a clear update + questions.",         cat:"meeting" },
+    { id:"f12", time:"16:30 — 17:00", title:"IELTS prep (shortened)",        desc:"30 min only — compressed by the supervisor meeting.",                      cat:"ielts" },
+    { id:"f13", time:"17:00 — 18:00", title:"Free / buffer time",            desc:"Unstructured — absorb overflow or genuinely rest, but be honest about which.", cat:"brk" },
+    { id:"f14", time:"18:00 — 19:00", title:"Music time",                    desc:"Practice, listen, unwind with music.",                                      cat:"music" },
+    { id:"f15", time:"19:00 — 20:00", title:"Movie / Web series",            desc:"Entertainment downtime.",                                                   cat:"entertain" },
+    { id:"f16", time:"20:00 — 20:30", title:"Dinner",                        desc:"Eat without rushing into the next block.",                                  cat:"brk" },
+    { id:"f17", time:"21:00 — 24:00", title:"Walk + Misc",                   desc:"3 hr flexible block — walk, errands, leftover work.",                      cat:"fitness" }
   ];
 
   var DAYS = [
-    { label:"MONDAY",    subtitle:"Research block A — literature intake",        data: WEEKDAY },
-    { label:"TUESDAY",   subtitle:"Research block B — IELTS writing module",     data: WEEKDAY },
-    { label:"WEDNESDAY", subtitle:"Midpoint vector — listening module active",   data: WEEKDAY },
-    { label:"THURSDAY",  subtitle:"Deep processing — speaking module active",    data: WEEKDAY },
-    { label:"FRIDAY",    subtitle:"Final push — reading module + synthesis",     data: WEEKDAY },
-    { label:"SATURDAY",  subtitle:"Extended survey mission + weekly debrief",    data: SATURDAY },
-    { label:"SUNDAY",    subtitle:"Recovery cycle — reflect, recharge, plan",    data: SUNDAY }
+    { label:"MONDAY",    subtitle:"Standard routine",                       data: DAILY },
+    { label:"TUESDAY",   subtitle:"Standard routine",                       data: DAILY },
+    { label:"WEDNESDAY", subtitle:"Standard routine",                       data: DAILY },
+    { label:"THURSDAY",  subtitle:"Standard routine",                       data: DAILY },
+    { label:"FRIDAY",    subtitle:"Supervisor meeting 3:30–4:30 PM",        data: FRIDAY },
+    { label:"SATURDAY",  subtitle:"Standard routine",                       data: DAILY },
+    { label:"SUNDAY",    subtitle:"Standard routine",                       data: DAILY }
   ];
 
   var state = {};
